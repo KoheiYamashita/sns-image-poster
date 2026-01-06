@@ -68,17 +68,26 @@ TZ=Asia/Tokyo
 
 ## 使い方
 
-### 全ワークフローのテスト
-
-お題取得 → 物語生成 → 画像生成 → 品質チェック → 投稿テキスト作成
+### 基本実行
 
 ```bash
-npm run test:workflow
+# Twitterからお題を自動取得して実行
+npm run start
+
+# お題を直接指定して実行
+npm run start -- --topic "猫の日"
+npm run start -- -t "犬の日"
+
+# ヘルプ表示
+npm run start -- --help
 ```
 
-### 個別テスト
+### テストコマンド
 
 ```bash
+# 全ワークフローのテスト（お題取得 → 物語生成 → 画像生成 → 投稿テキスト作成）
+npm run test:workflow
+
 # お題取得のみ
 npm run test:topic
 
@@ -115,11 +124,14 @@ npm run test:story
 
 ```
 src/
+├── cli/
+│   └── args.ts             # CLI引数パース
 ├── config/
 │   └── env.ts              # 環境変数管理
 ├── providers/
 │   ├── topic/              # お題取得プロバイダー
-│   │   └── twitter-api-io.ts
+│   │   ├── twitter-api-io.ts  # Twitter自動取得
+│   │   └── manual.ts          # CLI引数指定
 │   ├── image-generation/   # 画像生成プロバイダー
 │   │   └── gemini.ts
 │   └── sns/                # SNS投稿プロバイダー
