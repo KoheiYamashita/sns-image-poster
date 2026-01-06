@@ -12,12 +12,16 @@
     "lint:fix": "eslint src/ --fix",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:topic": "tsx src/test-topic.ts"
+    "test:topic": "tsx src/test-topic.ts",
+    "test:story": "tsx src/test-story.ts",
+    "test:workflow": "tsx src/test-workflow.ts",
+    "twitter:login": "tsx src/twitter-login.ts"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.76",
     "@anthropic-ai/sdk": "^0.35.0",
     "dotenv": "^16.4.0",
     "node-cron": "^3.0.3",

@@ -24,3 +24,12 @@ Thumbs.db
 
 # Test coverage
 coverage/
+
+# Generated output
+output/
+
+# Assets (character images, prompts)
+assets/
+
+# Twitter cookie (sensitive)
+.twitter-cookie.json

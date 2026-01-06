@@ -33,3 +33,19 @@ export abstract class WorkflowBaseError extends Error {
 export class TopicFetchError extends WorkflowBaseError {
   readonly step = "topic_fetch" as const;
 }
+
+export class StoryGenerationError extends WorkflowBaseError {
+  readonly step = "story_generation" as const;
+}
+
+export class ImageGenerationError extends WorkflowBaseError {
+  readonly step = "image_generation" as const;
+}
+
+export class QualityCheckError extends WorkflowBaseError {
+  readonly step = "quality_check" as const;
+}
+
+export class PostFormatError extends WorkflowBaseError {
+  readonly step = "post_format" as const;
+}
