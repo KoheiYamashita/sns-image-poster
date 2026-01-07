@@ -1,6 +1,7 @@
 import {
   TwitterApiIoProvider,
   ManualTopicProvider,
+  FileListTopicProvider,
   type TopicProvider,
 } from "../providers/topic/index.js";
 import {
@@ -18,9 +19,12 @@ export async function runWorkflow(topic?: string): Promise<void> {
   logger.info("SNS Image Poster ワークフロー開始");
 
   // TopicProviderの選択
+  // 優先順位: 1. 引数指定 → 2. ファイルリスト → 3. Twitter API
   const topicProvider: TopicProvider = topic
     ? new ManualTopicProvider(topic)
-    : new TwitterApiIoProvider();
+    : env.TOPIC_LIST_FILE
+      ? new FileListTopicProvider(env.TOPIC_LIST_FILE)
+      : new TwitterApiIoProvider();
 
   logger.info({ provider: topicProvider.getName() }, "お題プロバイダーを選択");
 
@@ -134,6 +138,11 @@ export async function runWorkflow(topic?: string): Promise<void> {
     } else {
       logger.info("SNS投稿はスキップされました（API KEYまたは投稿先が未設定）");
       console.log("\n※ SNS投稿はスキップされました（BUNDLE_SOCIAL_API_KEYまたはSNS_TARGETSが未設定）");
+    }
+
+    // FileListTopicProviderの場合、使用済みお題をファイルから削除
+    if (topicProvider instanceof FileListTopicProvider) {
+      await topicProvider.markUsed();
     }
 
     // 成功通知

@@ -82,6 +82,9 @@ const envSchema = z.object({
     .transform((val) =>
       val ? val.split(",").map((t) => t.trim()) : []
     ),
+
+  // お題リストファイル設定
+  TOPIC_LIST_FILE: z.string().optional(),
 });
 
 function loadCharacterPrompt(path: string): string {

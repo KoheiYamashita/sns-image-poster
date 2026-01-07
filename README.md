@@ -80,9 +80,18 @@ LOG_FILE_PATH=./logs/workflow.jsonl      # ログ保存先（JSONL形式で追�
 # 定期実行設定（任意）
 SCHEDULE_TIMES=09:00,12:00,18:00         # 定期実行時刻（TZに基づく）
 
+# お題リストファイル設定（任意）
+TOPIC_LIST_FILE=./data/topics.txt        # 設定時はファイルからお題取得
+
 # タイムゾーン
 TZ=Asia/Tokyo
 ```
+
+### お題取得の優先順位
+
+1. `--topic` 引数 → 手動指定
+2. `TOPIC_LIST_FILE` → ファイルから（1行1お題、ランダム選択、使用後削除）
+3. 上記なし → Twitter API
 
 ### 対応SNSプラットフォーム
 

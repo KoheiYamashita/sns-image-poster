@@ -34,6 +34,10 @@ export class TopicFetchError extends WorkflowBaseError {
   readonly step = "topic_fetch" as const;
 }
 
+export class TopicListEmptyError extends WorkflowBaseError {
+  readonly step = "topic_fetch" as const;
+}
+
 export class StoryGenerationError extends WorkflowBaseError {
   readonly step = "story_generation" as const;
 }
