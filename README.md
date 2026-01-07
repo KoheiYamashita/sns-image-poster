@@ -1,12 +1,13 @@
 # SNS Image Poster
 
-キャラクター設定に基づいて物語と画像を自動生成し、SNSに投稿するシステム。
+キャラクター設定に基づいて物語とイラスト／4コマ漫画を自動生成し、SNSに投稿するシステム。
 
 ## 機能
 
 - **お題取得**: Twitter/Xから「今日は○○の日」形式のお題を取得
 - **物語生成**: Claude Opus 4.5でキャラクター設定に基づいた物語を生成
 - **画像生成**: Gemini 3 Pro Imageで物語のワンシーンを画像化
+- **4コマ漫画モード**: 起承転結の4コマ漫画+挿絵を自動生成
 - **品質チェック**: 生成画像がキャラクター設定・物語・スタイルに合致しているか検証
 - **自動リトライ**: 品質チェック不合格時にプロンプトを改善して再生成
 - **投稿テキスト作成**: SNS投稿用のテキストとハッシュタグを生成
@@ -54,7 +55,12 @@ ILLUSTRATION_STYLE=3Dアニメーション      # イラストスタイル
 
 # Gemini API
 GEMINI_API_KEY=your_gemini_api_key
-IMAGE_ASPECT_RATIO=1:1                   # 画像比率
+IMAGE_ASPECT_RATIO=1:1                   # 画像比率（イラストモード）
+
+# コンテンツモード設定
+CONTENT_MODE=illustration                # illustration または manga
+MANGA_STORY_STRUCTURE=起承転結           # 漫画の構成
+MANGA_ASPECT_RATIO=3:4                   # 漫画画像の比率（2:3, 3:4, 4:5）
 
 # リトライ設定
 MAX_IMAGE_RETRY_COUNT=3                  # 最大リトライ回数
@@ -148,6 +154,8 @@ npm run test:story
 
 ## ワークフロー
 
+### イラストモード（デフォルト: `CONTENT_MODE=illustration`）
+
 ```
 1. お題取得 (TwitterAPI.io)
    └─ 指定アカウントから「今日は○○の日」を取得
@@ -171,16 +179,42 @@ npm run test:story
    └─ 物語 + お題 → SNS投稿文 + ハッシュタグ
 
 7. SNS投稿 (bundle.social) ※オプション
-   ├─ 画像アップロード
-   ├─ 指定SNSへ投稿
-   │   └─ QUOTE_URL_TARGETS指定のSNSのみ引用URLを先頭に追加
-   └─ API KEY未設定時はスキップ
+   └─ 画像アップロード → 指定SNSへ投稿
 
 8. 完了通知 ※オプション
-   ├─ 成功時: "投稿が完了しました" / "投稿の準備ができました"
-   ├─ エラー時: エラー内容（step + message）
-   ├─ Webhook送信（WEBHOOK_URL設定時）
-   └─ ログ保存（LOG_FILE_PATH設定時、JSONL形式で追記）
+   └─ Webhook送信 / ログ保存
+```
+
+### 4コマ漫画モード（`CONTENT_MODE=manga`）
+
+```
+1. お題取得 (TwitterAPI.io)
+   └─ 指定アカウントから「今日は○○の日」を取得
+
+2. プロット生成 (Claude Opus 4.5)
+   └─ キャラクター設定 + お題 → 起承転結の4コマ構成 + 挿絵説明
+
+3. 画像生成 (Gemini 3 Pro Image)
+   └─ 参照画像 + プロンプト → 4コマ+挿絵レイアウトの画像
+
+4. 品質チェック (Claude Opus 4.5)
+   ├─ キャラクター一貫性（全コマで同じ外見か）
+   ├─ セリフ可読性
+   ├─ レイアウト正確性
+   ├─ 物語の流れ
+   └─ 挿絵整合性
+
+5. リトライ（不合格時）
+   └─ フィードバックを元にプロンプト改善 → 再生成
+
+6. 投稿テキスト作成 (Claude Opus 4.5)
+   └─ あらすじ + お題 → SNS投稿文 + ハッシュタグ
+
+7. SNS投稿 (bundle.social) ※オプション
+   └─ 画像アップロード → 指定SNSへ投稿
+
+8. 完了通知 ※オプション
+   └─ Webhook送信 / ログ保存
 ```
 
 ## プロジェクト構成
@@ -209,7 +243,11 @@ src/
 │   ├── prompt-refiner.ts   # プロンプト改善
 │   ├── image-workflow.ts   # 画像生成ワークフロー（リトライ込み）
 │   ├── post-formatter.ts   # 投稿テキスト作成
-│   └── runner.ts           # ワークフロー実行
+│   ├── runner.ts           # ワークフロー実行
+│   └── manga/              # 4コマ漫画モード
+│       ├── story-generator.ts  # プロット生成
+│       ├── image-generator.ts  # 漫画画像生成
+│       └── workflow.ts         # 漫画ワークフロー
 ├── daemon.ts               # デーモンエントリーポイント
 ├── types/                  # 型定義
 ├── errors/                 # エラークラス
