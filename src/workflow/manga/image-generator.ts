@@ -86,7 +86,7 @@ export async function generateMangaImage(
     const image = await provider.generate({
       prompt,
       referenceImages,
-      aspectRatio: env.MANGA_ASPECT_RATIO,
+      aspectRatio: env.ASPECT_RATIO,
     });
 
     logger.info(

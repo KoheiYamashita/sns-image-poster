@@ -27,6 +27,11 @@ export class TwitterApiIoProvider implements TopicProvider {
   private readonly baseUrl = "https://api.twitterapi.io/twitter/tweet/advanced_search";
 
   constructor() {
+    if (!env.TWITTER_API_IO_KEY) {
+      throw new TopicFetchError(
+        "TWITTER_API_IO_KEYが設定されていません。Xからお題を取得するには設定が必要です。"
+      );
+    }
     this.apiKey = env.TWITTER_API_IO_KEY;
     this.account = env.X_TOPIC_SOURCE_ACCOUNT;
     this.searchKeyword = env.TOPIC_SEARCH_KEYWORD;

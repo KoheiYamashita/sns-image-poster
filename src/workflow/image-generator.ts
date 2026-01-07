@@ -36,7 +36,7 @@ export async function generateImage(
     const image = await provider.generate({
       prompt,
       referenceImages,
-      aspectRatio: env.IMAGE_ASPECT_RATIO,
+      aspectRatio: env.ASPECT_RATIO,
     });
 
     logger.info(

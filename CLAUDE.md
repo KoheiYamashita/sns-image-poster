@@ -94,8 +94,7 @@ npm run test:workflow    # ワークフローテスト
 
 ### コンテンツモード
 - `CONTENT_MODE` - `illustration`（デフォルト）または `manga`
-- `MANGA_STORY_STRUCTURE` - 漫画の構成（デフォルト：`起承転結`）
-- `MANGA_ASPECT_RATIO` - 漫画画像の比率（デフォルト：`3:4`）
+- `ASPECT_RATIO` - 画像の比率（デフォルト：イラストモード`1:1`、漫画モード`3:4`）
 
 詳細は`src/config/env.ts`を参照。
 

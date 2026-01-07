@@ -22,6 +22,10 @@ interface TwitterCookie {
 export async function login(): Promise<string> {
   const { TWITTER_USERNAME, TWITTER_EMAIL, TWITTER_PASSWORD, TWITTER_TOTP_SECRET, TWITTER_PROXY_URL, TWITTER_API_IO_KEY } = env;
 
+  if (!TWITTER_API_IO_KEY) {
+    throw new Error("TWITTER_API_IO_KEY を .env に設定してください");
+  }
+
   if (!TWITTER_USERNAME || !TWITTER_EMAIL || !TWITTER_PASSWORD) {
     throw new Error("TWITTER_USERNAME, TWITTER_EMAIL, TWITTER_PASSWORD を .env に設定してください");
   }

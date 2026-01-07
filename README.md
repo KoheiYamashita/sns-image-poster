@@ -55,12 +55,10 @@ ILLUSTRATION_STYLE=3Dアニメーション      # イラストスタイル
 
 # Gemini API
 GEMINI_API_KEY=your_gemini_api_key
-IMAGE_ASPECT_RATIO=1:1                   # 画像比率（イラストモード）
+ASPECT_RATIO=1:1                         # 画像比率（未指定時：イラスト=1:1、漫画=3:4）
 
 # コンテンツモード設定
 CONTENT_MODE=illustration                # illustration または manga
-MANGA_STORY_STRUCTURE=起承転結           # 漫画の構成
-MANGA_ASPECT_RATIO=3:4                   # 漫画画像の比率（2:3, 3:4, 4:5）
 
 # リトライ設定
 MAX_IMAGE_RETRY_COUNT=3                  # 最大リトライ回数

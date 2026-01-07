@@ -5,8 +5,8 @@ import { z } from "zod";
 config();
 
 const envSchema = z.object({
-  // TwitterAPI.io
-  TWITTER_API_IO_KEY: z.string().min(1, "TwitterAPI.io APIキーは必須です"),
+  // TwitterAPI.io（お題をXから取得する場合のみ必要）
+  TWITTER_API_IO_KEY: z.string().optional(),
 
   // Twitter ログイン情報
   TWITTER_USERNAME: z.string().optional(),
@@ -23,8 +23,6 @@ const envSchema = z.object({
 
   // コンテンツモード設定
   CONTENT_MODE: z.enum(["illustration", "manga"]).default("illustration"),
-  MANGA_STORY_STRUCTURE: z.string().default("起承転結"),
-  MANGA_ASPECT_RATIO: z.enum(["2:3", "3:4", "4:5"]).default("3:4"),
 
   // キャラクター設定
   CHARACTER_PROMPT_PATH: z.string().min(1, "CHARACTER_PROMPT_PATHは必須です"),
@@ -37,7 +35,7 @@ const envSchema = z.object({
 
   // Gemini API (画像生成)
   GEMINI_API_KEY: z.string().min(1, "Gemini APIキーは必須です"),
-  IMAGE_ASPECT_RATIO: z.string().default("1:1"),
+  ASPECT_RATIO: z.string().optional(),
 
   // リトライ設定
   MAX_IMAGE_RETRY_COUNT: z.coerce.number().int().min(1).default(3),
@@ -114,9 +112,15 @@ function loadEnv() {
 
   const CHARACTER_PROMPT = loadCharacterPrompt(result.data.CHARACTER_PROMPT_PATH);
 
+  // ASPECT_RATIOが未指定の場合、CONTENT_MODEに応じたデフォルトを適用
+  const ASPECT_RATIO =
+    result.data.ASPECT_RATIO ??
+    (result.data.CONTENT_MODE === "manga" ? "3:4" : "1:1");
+
   return {
     ...result.data,
     CHARACTER_PROMPT,
+    ASPECT_RATIO,
   };
 }
 
