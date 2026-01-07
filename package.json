@@ -15,7 +15,9 @@
     "test:topic": "tsx src/test-topic.ts",
     "test:story": "tsx src/test-story.ts",
     "test:workflow": "tsx src/test-workflow.ts",
-    "twitter:login": "tsx src/twitter-login.ts"
+    "twitter:login": "tsx src/twitter-login.ts",
+    "daemon:start": "npm run build && bash scripts/daemon-start.sh",
+    "daemon:stop": "bash scripts/daemon-stop.sh"
   },
   "engines": {
     "node": ">=22.0.0"

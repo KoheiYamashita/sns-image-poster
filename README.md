@@ -11,6 +11,7 @@
 - **自動リトライ**: 品質チェック不合格時にプロンプトを改善して再生成
 - **投稿テキスト作成**: SNS投稿用のテキストとハッシュタグを生成
 - **SNS投稿**: bundle.social API経由で複数SNSに投稿（Twitter/X、Bluesky、Threads等）
+- **定期実行**: 指定時刻に自動実行するデーモンモード
 
 ## 必要要件
 
@@ -76,6 +77,9 @@ QUOTE_URL_TARGETS=TWITTER                # 引用URLを先頭に追加するSNS�
 WEBHOOK_URL=https://example.com/webhook  # 成功/エラー時のWebhook送信先
 LOG_FILE_PATH=./logs/workflow.jsonl      # ログ保存先（JSONL形式で追記）
 
+# 定期実行設定（任意）
+SCHEDULE_TIMES=09:00,12:00,18:00         # 定期実行時刻（TZに基づく）
+
 # タイムゾーン
 TZ=Asia/Tokyo
 ```
@@ -107,6 +111,18 @@ npm run start -- -t "犬の日"
 # ヘルプ表示
 npm run start -- --help
 ```
+
+### 定期実行（デーモンモード）
+
+```bash
+# デーモンを起動（バックグラウンド実行）
+npm run daemon:start
+
+# デーモンを停止
+npm run daemon:stop
+```
+
+SCHEDULE_TIMESで指定した時刻に自動実行されます。
 
 ### テストコマンド
 
@@ -183,11 +199,17 @@ src/
 │   ├── quality-checker.ts  # 品質チェック
 │   ├── prompt-refiner.ts   # プロンプト改善
 │   ├── image-workflow.ts   # 画像生成ワークフロー（リトライ込み）
-│   └── post-formatter.ts   # 投稿テキスト作成
+│   ├── post-formatter.ts   # 投稿テキスト作成
+│   └── runner.ts           # ワークフロー実行
+├── daemon.ts               # デーモンエントリーポイント
 ├── types/                  # 型定義
 ├── errors/                 # エラークラス
 └── lib/
     ├── logger.ts           # ロガー
     └── notification.ts     # Webhook通知・ログ保存
+
+scripts/
+├── daemon-start.sh         # デーモン起動スクリプト
+└── daemon-stop.sh          # デーモン停止スクリプト
 ```
 

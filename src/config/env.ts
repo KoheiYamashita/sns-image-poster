@@ -74,6 +74,14 @@ const envSchema = z.object({
     .transform((val) =>
       val ? val.split(",").map((s) => s.trim().toUpperCase()) : []
     ),
+
+  // 定期実行設定
+  SCHEDULE_TIMES: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val ? val.split(",").map((t) => t.trim()) : []
+    ),
 });
 
 function loadCharacterPrompt(path: string): string {
