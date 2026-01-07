@@ -38,8 +38,8 @@ export class TwitterApiIoProvider implements TopicProvider {
   }
 
   async getTopic(): Promise<TopicSource> {
-    const todayJST = this.getTodayJST();
-    const query = `from:${this.account} ${this.searchKeyword} since:${todayJST}_00:00:00_UTC`;
+    const sinceUTC = this.getLocalMidnightAsUTC();
+    const query = `from:${this.account} ${this.searchKeyword} since:${sinceUTC}_UTC`;
 
     logger.info({ query }, "検索クエリを実行");
 
@@ -97,10 +97,59 @@ export class TwitterApiIoProvider implements TopicProvider {
     return (await res.json()) as TwitterApiIoResponse;
   }
 
-  private getTodayJST(): string {
+  /**
+   * 設定されたタイムゾーンの今日0時をUTC時刻形式で返す
+   * 例: Asia/Tokyo 2026-01-07 00:00:00 → UTC 2026-01-06_15:00:00
+   */
+  private getLocalMidnightAsUTC(): string {
+    const tz = env.TZ;
+
+    // 指定タイムゾーンでの今日の日付を取得
     const now = new Date();
-    const jstOffset = 9 * 60 * 60 * 1000;
-    const jstDate = new Date(now.getTime() + jstOffset);
-    return jstDate.toISOString().split("T")[0]!;
+    const localDateStr = now
+      .toLocaleDateString("en-CA", { timeZone: tz })
+      .split("T")[0]!;
+
+    // そのタイムゾーンの0時をUTCに変換
+    const localMidnightUTC = new Date(
+      new Date(localDateStr + "T00:00:00").toLocaleString("en-US", {
+        timeZone: tz,
+      })
+    );
+
+    // タイムゾーンオフセットを計算してUTC時刻を取得
+    const midnightInTZ = new Date(
+      Date.UTC(
+        parseInt(localDateStr.slice(0, 4)),
+        parseInt(localDateStr.slice(5, 7)) - 1,
+        parseInt(localDateStr.slice(8, 10)),
+        0,
+        0,
+        0
+      )
+    );
+
+    // タイムゾーンのオフセットを取得（分単位）
+    const tzOffsetMs = this.getTimezoneOffsetMs(tz, midnightInTZ);
+    midnightInTZ.setTime(midnightInTZ.getTime() - tzOffsetMs);
+
+    // YYYY-MM-DD_HH:MM:SS 形式でフォーマット
+    const year = midnightInTZ.getUTCFullYear();
+    const month = String(midnightInTZ.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(midnightInTZ.getUTCDate()).padStart(2, "0");
+    const hour = String(midnightInTZ.getUTCHours()).padStart(2, "0");
+    const minute = String(midnightInTZ.getUTCMinutes()).padStart(2, "0");
+    const second = String(midnightInTZ.getUTCSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day}_${hour}:${minute}:${second}`;
+  }
+
+  /**
+   * 指定タイムゾーンのUTCからのオフセット（ミリ秒）を取得
+   */
+  private getTimezoneOffsetMs(tz: string, date: Date): number {
+    const utcStr = date.toLocaleString("en-US", { timeZone: "UTC" });
+    const tzStr = date.toLocaleString("en-US", { timeZone: tz });
+    return new Date(tzStr).getTime() - new Date(utcStr).getTime();
   }
 }

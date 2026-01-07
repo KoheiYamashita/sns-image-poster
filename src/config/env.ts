@@ -39,6 +39,16 @@ const envSchema = z.object({
 
   // 投稿設定
   POST_STYLE: z.string().default("カジュアル"),
+
+  // bundle.social設定（任意）
+  BUNDLE_SOCIAL_API_KEY: z.string().optional(),
+  BUNDLE_SOCIAL_TEAM_ID: z.string().optional(),
+  SNS_TARGETS: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val ? val.split(",").map((s) => s.trim().toUpperCase()) : []
+    ),
   POST_BASE_HASHTAGS: z
     .string()
     .optional()

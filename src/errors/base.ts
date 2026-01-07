@@ -49,3 +49,7 @@ export class QualityCheckError extends WorkflowBaseError {
 export class PostFormatError extends WorkflowBaseError {
   readonly step = "post_format" as const;
 }
+
+export class SNSPostError extends WorkflowBaseError {
+  readonly step = "sns_post" as const;
+}

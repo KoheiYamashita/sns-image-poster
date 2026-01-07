@@ -4,10 +4,15 @@ import {
   ManualTopicProvider,
   type TopicProvider,
 } from "./providers/topic/index.js";
+import {
+  BundleSocialProvider,
+  type SupportedPlatform,
+} from "./providers/sns-post/index.js";
 import { generateStory } from "./workflow/story-generator.js";
 import { executeImageWorkflow } from "./workflow/image-workflow.js";
 import { formatPost } from "./workflow/post-formatter.js";
 import { logger } from "./lib/logger.js";
+import { env } from "./config/env.js";
 
 async function main() {
   const args = parseCliArgs();
@@ -99,6 +104,45 @@ async function main() {
   console.log(`【ハッシュタグ】${post.hashtags.join(" ")}`);
 
   console.log(`\n生成日時: ${result.image.generatedAt.toLocaleString("ja-JP")}`);
+
+  // Step 5: SNS投稿（オプション）
+  if (env.BUNDLE_SOCIAL_API_KEY && env.SNS_TARGETS.length > 0) {
+    logger.info({ targets: env.SNS_TARGETS }, "SNS投稿を開始");
+
+    const snsProvider = new BundleSocialProvider();
+
+    // 引用リポストの代わりに元ツイートURLを先頭に追加
+    const postText = topic.tweetUrl
+      ? `${topic.tweetUrl}\n\n${post.text}`
+      : post.text;
+
+    const snsResults = await snsProvider.post(
+      {
+        text: postText,
+        imageBuffer: result.image.data,
+        imageMimeType: result.image.mimeType,
+      },
+      env.SNS_TARGETS as SupportedPlatform[]
+    );
+
+    console.log("\n=== SNS投稿結果 ===");
+    for (const r of snsResults) {
+      if (r.success) {
+        console.log(`\n✅ ${r.platform}: 投稿成功`);
+        if (r.postUrl) {
+          console.log(`   URL: ${r.postUrl}`);
+        }
+        logger.info({ platform: r.platform, postUrl: r.postUrl }, "投稿成功");
+      } else {
+        console.log(`\n❌ ${r.platform}: 投稿失敗`);
+        console.log(`   エラー: ${r.error}`);
+        logger.error({ platform: r.platform, error: r.error }, "投稿失敗");
+      }
+    }
+  } else {
+    logger.info("SNS投稿はスキップされました（API KEYまたは投稿先が未設定）");
+    console.log("\n※ SNS投稿はスキップされました（BUNDLE_SOCIAL_API_KEYまたはSNS_TARGETSが未設定）");
+  }
 }
 
 main().catch((error) => {

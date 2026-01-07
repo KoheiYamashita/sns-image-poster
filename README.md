@@ -1,6 +1,6 @@
 # SNS Image Poster
 
-キャラクター設定に基づいて物語と画像を自動生成し、SNS投稿用テキストを作成するシステム。
+キャラクター設定に基づいて物語と画像を自動生成し、SNSに投稿するシステム。
 
 ## 機能
 
@@ -10,6 +10,7 @@
 - **品質チェック**: 生成画像がキャラクター設定・物語・スタイルに合致しているか検証
 - **自動リトライ**: 品質チェック不合格時にプロンプトを改善して再生成
 - **投稿テキスト作成**: SNS投稿用のテキストとハッシュタグを生成
+- **SNS投稿**: bundle.social API経由で複数SNSに投稿（Twitter/X、Bluesky、Threads等）
 
 ## 必要要件
 
@@ -17,6 +18,7 @@
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) がインストール済みであること（Claude Agent SDK用）
 - [TwitterAPI.io](https://twitterapi.io/) APIキー
 - [Gemini API](https://ai.google.dev/) APIキー
+- [bundle.social](https://bundle.social/) APIキー（SNS投稿機能を使用する場合）
 
 ## セットアップ
 
@@ -62,9 +64,26 @@ POST_BASE_HASHTAGS=イラスト,AI           # 基本ハッシュタグ（#な�
 POST_TARGET_LENGTH=100                   # 目標文字数
 POST_MAX_LENGTH=140                      # 最大文字数
 
+# bundle.social設定（任意：設定しなければ投稿スキップ）
+BUNDLE_SOCIAL_API_KEY=your_api_key       # bundle.social APIキー
+BUNDLE_SOCIAL_TEAM_ID=your_team_id       # bundle.social チームID
+SNS_TARGETS=TWITTER,BLUESKY              # 投稿先SNS（カンマ区切り）
+
 # タイムゾーン
 TZ=Asia/Tokyo
 ```
+
+### 対応SNSプラットフォーム
+
+`SNS_TARGETS` に指定可能な値:
+- `TWITTER` - Twitter/X
+- `BLUESKY` - Bluesky
+- `THREADS` - Threads
+- `INSTAGRAM` - Instagram
+- `FACEBOOK` - Facebook
+- `LINKEDIN` - LinkedIn
+- `TIKTOK` - TikTok
+- `MASTODON` - Mastodon
 
 ## 使い方
 
@@ -118,6 +137,11 @@ npm run test:story
 
 6. 投稿テキスト作成 (Claude Opus 4.5)
    └─ 物語 + お題 → SNS投稿文 + ハッシュタグ
+
+7. SNS投稿 (bundle.social) ※オプション
+   ├─ 画像アップロード
+   ├─ 指定SNSへ投稿（元ツイートURLを先頭に追加）
+   └─ API KEY未設定時はスキップ
 ```
 
 ## プロジェクト構成
@@ -134,8 +158,11 @@ src/
 │   │   └── manual.ts          # CLI引数指定
 │   ├── image-generation/   # 画像生成プロバイダー
 │   │   └── gemini.ts
-│   └── sns/                # SNS投稿プロバイダー
-│       └── twitter.ts
+│   ├── sns/                # SNSログイン管理
+│   │   └── twitter.ts
+│   └── sns-post/           # SNS投稿プロバイダー
+│       ├── interface.ts       # インターフェース定義
+│       └── bundle-social.ts   # bundle.social実装
 ├── workflow/
 │   ├── story-generator.ts  # 物語生成
 │   ├── image-generator.ts  # 画像生成
