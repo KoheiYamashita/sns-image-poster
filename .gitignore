@@ -36,3 +36,6 @@ assets/
 
 # Daemon PID file
 .daemon.pid
+
+# Data files (topics, etc.)
+data/
