@@ -3,3 +3,4 @@ export * from "./story.js";
 export * from "./image.js";
 export * from "./quality.js";
 export * from "./post.js";
+export * from "./manga.js";

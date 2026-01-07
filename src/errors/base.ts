@@ -4,7 +4,10 @@ export type WorkflowStep =
   | "image_generation"
   | "quality_check"
   | "post_format"
-  | "sns_post";
+  | "sns_post"
+  | "manga_story_generation"
+  | "manga_image_generation"
+  | "manga_quality_check";
 
 export abstract class WorkflowBaseError extends Error {
   abstract readonly step: WorkflowStep;
@@ -56,4 +59,16 @@ export class PostFormatError extends WorkflowBaseError {
 
 export class SNSPostError extends WorkflowBaseError {
   readonly step = "sns_post" as const;
+}
+
+export class MangaStoryGenerationError extends WorkflowBaseError {
+  readonly step = "manga_story_generation" as const;
+}
+
+export class MangaImageGenerationError extends WorkflowBaseError {
+  readonly step = "manga_image_generation" as const;
+}
+
+export class MangaQualityCheckError extends WorkflowBaseError {
+  readonly step = "manga_quality_check" as const;
 }

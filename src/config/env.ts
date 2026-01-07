@@ -21,6 +21,11 @@ const envSchema = z.object({
   TOPIC_PATTERN: z.string().default("^今日は(.+の日)です！"),
   TZ: z.string().default("Asia/Tokyo"),
 
+  // コンテンツモード設定
+  CONTENT_MODE: z.enum(["illustration", "manga"]).default("illustration"),
+  MANGA_STORY_STRUCTURE: z.string().default("起承転結"),
+  MANGA_ASPECT_RATIO: z.enum(["2:3", "3:4", "4:5"]).default("3:4"),
+
   // キャラクター設定
   CHARACTER_PROMPT_PATH: z.string().min(1, "CHARACTER_PROMPT_PATHは必須です"),
   CHARACTER_APPEARANCE_PROMPT: z.string().optional(),
