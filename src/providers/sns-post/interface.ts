@@ -13,6 +13,7 @@ export interface SNSPostContent {
   imageBuffer: Buffer;
   imageMimeType: string;
   quoteTweetId?: string; // 引用リポスト用（Twitter/Xのみ）
+  quoteUrl?: string; // 引用元URL（指定したプラットフォームのみテキスト先頭に追加）
 }
 
 export interface SNSPostResult {

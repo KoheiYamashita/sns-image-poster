@@ -12,6 +12,7 @@ import { generateStory } from "./workflow/story-generator.js";
 import { executeImageWorkflow } from "./workflow/image-workflow.js";
 import { formatPost } from "./workflow/post-formatter.js";
 import { logger } from "./lib/logger.js";
+import { notifySuccess, notifyError } from "./lib/notification.js";
 import { env } from "./config/env.js";
 
 async function main() {
@@ -106,21 +107,18 @@ async function main() {
   console.log(`\n生成日時: ${result.image.generatedAt.toLocaleString("ja-JP")}`);
 
   // Step 5: SNS投稿（オプション）
+  let posted = false;
   if (env.BUNDLE_SOCIAL_API_KEY && env.SNS_TARGETS.length > 0) {
     logger.info({ targets: env.SNS_TARGETS }, "SNS投稿を開始");
 
     const snsProvider = new BundleSocialProvider();
 
-    // 引用リポストの代わりに元ツイートURLを先頭に追加
-    const postText = topic.tweetUrl
-      ? `${topic.tweetUrl}\n\n${post.text}`
-      : post.text;
-
     const snsResults = await snsProvider.post(
       {
-        text: postText,
+        text: post.text,
         imageBuffer: result.image.data,
         imageMimeType: result.image.mimeType,
+        quoteUrl: topic.tweetUrl,
       },
       env.SNS_TARGETS as SupportedPlatform[]
     );
@@ -133,6 +131,7 @@ async function main() {
           console.log(`   URL: ${r.postUrl}`);
         }
         logger.info({ platform: r.platform, postUrl: r.postUrl }, "投稿成功");
+        posted = true;
       } else {
         console.log(`\n❌ ${r.platform}: 投稿失敗`);
         console.log(`   エラー: ${r.error}`);
@@ -143,10 +142,14 @@ async function main() {
     logger.info("SNS投稿はスキップされました（API KEYまたは投稿先が未設定）");
     console.log("\n※ SNS投稿はスキップされました（BUNDLE_SOCIAL_API_KEYまたはSNS_TARGETSが未設定）");
   }
+
+  // 成功通知
+  await notifySuccess(posted);
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   logger.error({ error }, "エラーが発生しました");
   console.error(error);
+  await notifyError(error);
   process.exit(1);
 });

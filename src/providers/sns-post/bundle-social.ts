@@ -8,6 +8,21 @@ import type {
   SupportedPlatform,
 } from "./interface.js";
 
+function buildTextForPlatform(
+  platform: SupportedPlatform,
+  text: string,
+  quoteUrl?: string
+): string {
+  if (!quoteUrl) {
+    return text;
+  }
+  const targets = env.QUOTE_URL_TARGETS;
+  if (targets.includes(platform)) {
+    return `${quoteUrl}\n\n${text}`;
+  }
+  return text;
+}
+
 interface UploadResponse {
   id: string;
   type: string;
@@ -109,8 +124,13 @@ export class BundleSocialProvider implements SNSPostProvider {
     // プラットフォーム別のデータを構築
     const data: Record<string, object> = {};
     for (const platform of platforms) {
+      const platformText = buildTextForPlatform(
+        platform,
+        content.text,
+        content.quoteUrl
+      );
       const platformData: Record<string, unknown> = {
-        text: content.text,
+        text: platformText,
         uploadIds: [uploadId],
       };
 

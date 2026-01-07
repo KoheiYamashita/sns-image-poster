@@ -69,6 +69,13 @@ BUNDLE_SOCIAL_API_KEY=your_api_key       # bundle.social APIキー
 BUNDLE_SOCIAL_TEAM_ID=your_team_id       # bundle.social チームID
 SNS_TARGETS=TWITTER,BLUESKY              # 投稿先SNS（カンマ区切り）
 
+# 引用URL設定（任意）
+QUOTE_URL_TARGETS=TWITTER                # 引用URLを先頭に追加するSNS（カンマ区切り）
+
+# 通知設定（任意）
+WEBHOOK_URL=https://example.com/webhook  # 成功/エラー時のWebhook送信先
+LOG_FILE_PATH=./logs/workflow.jsonl      # ログ保存先（JSONL形式で追記）
+
 # タイムゾーン
 TZ=Asia/Tokyo
 ```
@@ -140,8 +147,15 @@ npm run test:story
 
 7. SNS投稿 (bundle.social) ※オプション
    ├─ 画像アップロード
-   ├─ 指定SNSへ投稿（元ツイートURLを先頭に追加）
+   ├─ 指定SNSへ投稿
+   │   └─ QUOTE_URL_TARGETS指定のSNSのみ引用URLを先頭に追加
    └─ API KEY未設定時はスキップ
+
+8. 完了通知 ※オプション
+   ├─ 成功時: "投稿が完了しました" / "投稿の準備ができました"
+   ├─ エラー時: エラー内容（step + message）
+   ├─ Webhook送信（WEBHOOK_URL設定時）
+   └─ ログ保存（LOG_FILE_PATH設定時、JSONL形式で追記）
 ```
 
 ## プロジェクト構成
@@ -173,6 +187,7 @@ src/
 ├── types/                  # 型定義
 ├── errors/                 # エラークラス
 └── lib/
-    └── logger.ts           # ロガー
+    ├── logger.ts           # ロガー
+    └── notification.ts     # Webhook通知・ログ保存
 ```
 

@@ -62,6 +62,18 @@ const envSchema = z.object({
     ),
   POST_TARGET_LENGTH: z.coerce.number().int().min(1).default(100),
   POST_MAX_LENGTH: z.coerce.number().int().min(1).default(140),
+
+  // 通知設定
+  WEBHOOK_URL: z.string().url().optional(),
+  LOG_FILE_PATH: z.string().optional(),
+
+  // 引用URL設定
+  QUOTE_URL_TARGETS: z
+    .string()
+    .optional()
+    .transform((val) =>
+      val ? val.split(",").map((s) => s.trim().toUpperCase()) : []
+    ),
 });
 
 function loadCharacterPrompt(path: string): string {
