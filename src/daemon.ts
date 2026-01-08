@@ -81,35 +81,16 @@ async function executeScheduledWorkflow(preset?: string): Promise<void> {
   }
 }
 
+interface PresetSchedule {
+  preset: string;
+  scheduleTimes: string[];
+  timezone: string;
+}
+
 function main(): void {
   // CLI引数を解析
   const args = parseCliArgs();
   const { presets } = args;
-
-  // プリセットなしまたは単一プリセットの場合は設定を初期化
-  if (presets.length <= 1) {
-    initConfig(presets[0]);
-  }
-
-  // スケジュール時刻を取得（複数プリセット時は各プリセットから、それ以外はenvから）
-  let scheduleTimes: string[];
-  let timezone: string;
-
-  if (presets.length > 1) {
-    // 複数プリセット時は最初のプリセットのスケジュールを使用（共通設定想定）
-    initConfig(presets[0]);
-    scheduleTimes = env.SCHEDULE_TIMES;
-    timezone = env.TZ;
-  } else {
-    scheduleTimes = env.SCHEDULE_TIMES;
-    timezone = env.TZ;
-  }
-
-  if (scheduleTimes.length === 0) {
-    logger.error("SCHEDULE_TIMESが設定されていません");
-    console.error("エラー: SCHEDULE_TIMESを設定してください（例: SCHEDULE_TIMES=09:00,12:00,18:00）");
-    process.exit(1);
-  }
 
   // PIDファイルを保存
   savePidFile();
@@ -117,54 +98,88 @@ function main(): void {
   // シグナルハンドラを設定
   setupSignalHandlers();
 
-  // 各時刻にスケジュールを設定
-  for (const time of scheduleTimes) {
-    const cronExpression = timeToCron(time);
+  if (presets.length === 0) {
+    // プリセットなし: 従来通り
+    initConfig(undefined);
+    const scheduleTimes = env.SCHEDULE_TIMES;
+    const timezone = env.TZ;
 
-    if (!cron.validate(cronExpression)) {
-      logger.error({ time, cronExpression }, "無効な時刻形式です");
-      continue;
+    if (scheduleTimes.length === 0) {
+      logger.error("SCHEDULE_TIMESが設定されていません");
+      console.error("エラー: SCHEDULE_TIMESを設定してください（例: SCHEDULE_TIMES=09:00,12:00,18:00）");
+      removePidFile();
+      process.exit(1);
     }
 
-    if (presets.length > 1) {
-      // 複数プリセット: 各プリセットを並列で実行
-      cron.schedule(
-        cronExpression,
-        async () => {
-          logger.info({ time, presets }, "複数プリセットのスケジュール実行を開始");
-          await Promise.all(presets.map((preset) => executeScheduledWorkflow(preset)));
-          logger.info({ presets }, "複数プリセットのスケジュール実行が完了");
-        },
-        { timezone }
-      );
-      logger.info({ time, cronExpression, timezone, presets }, "スケジュールを登録しました（複数プリセット）");
-    } else if (presets.length === 1) {
-      // 単一プリセット: 子プロセスで実行
-      cron.schedule(
-        cronExpression,
-        () => executeScheduledWorkflow(presets[0]),
-        { timezone }
-      );
-      logger.info({ time, cronExpression, timezone, preset: presets[0] }, "スケジュールを登録しました");
-    } else {
-      // プリセットなし: 従来通り
+    for (const time of scheduleTimes) {
+      const cronExpression = timeToCron(time);
+      if (!cron.validate(cronExpression)) {
+        logger.error({ time, cronExpression }, "無効な時刻形式です");
+        continue;
+      }
       cron.schedule(cronExpression, () => executeScheduledWorkflow(), { timezone });
       logger.info({ time, cronExpression, timezone }, "スケジュールを登録しました");
     }
-  }
 
-  console.log(`\nデーモンを起動しました (PID: ${process.pid})`);
-  console.log(`タイムゾーン: ${timezone}`);
-  console.log(`スケジュール時刻: ${scheduleTimes.join(", ")}`);
-  if (presets.length > 0) {
-    console.log(`プリセット: ${presets.join(", ")}`);
-  }
-  console.log("\n停止するには: npm run daemon:stop");
+    console.log(`\nデーモンを起動しました (PID: ${process.pid})`);
+    console.log(`タイムゾーン: ${timezone}`);
+    console.log(`スケジュール時刻: ${scheduleTimes.join(", ")}`);
+    console.log("\n停止するには: npm run daemon:stop");
 
-  logger.info(
-    { pid: process.pid, scheduleTimes, timezone, presets },
-    "デーモンを起動しました"
-  );
+    logger.info({ pid: process.pid, scheduleTimes, timezone }, "デーモンを起動しました");
+  } else {
+    // プリセットあり: 各プリセットのスケジュールを個別に登録
+    const schedules: PresetSchedule[] = [];
+
+    for (const preset of presets) {
+      initConfig(preset);
+      schedules.push({
+        preset,
+        scheduleTimes: [...env.SCHEDULE_TIMES],
+        timezone: env.TZ,
+      });
+    }
+
+    // スケジュールが全て空かチェック
+    if (schedules.every((s) => s.scheduleTimes.length === 0)) {
+      logger.error("全てのプリセットでSCHEDULE_TIMESが設定されていません");
+      console.error("エラー: SCHEDULE_TIMESを設定してください（例: scheduleTimes: [\"09:00\"]）");
+      removePidFile();
+      process.exit(1);
+    }
+
+    for (const { preset, scheduleTimes, timezone } of schedules) {
+      if (scheduleTimes.length === 0) {
+        logger.warn({ preset }, "SCHEDULE_TIMESが設定されていないためスキップします");
+        continue;
+      }
+
+      for (const time of scheduleTimes) {
+        const cronExpression = timeToCron(time);
+        if (!cron.validate(cronExpression)) {
+          logger.error({ time, cronExpression, preset }, "無効な時刻形式です");
+          continue;
+        }
+        cron.schedule(
+          cronExpression,
+          () => executeScheduledWorkflow(preset),
+          { timezone }
+        );
+        logger.info({ time, cronExpression, timezone, preset }, "スケジュールを登録しました");
+      }
+    }
+
+    console.log(`\nデーモンを起動しました (PID: ${process.pid})`);
+    console.log("スケジュール:");
+    for (const { preset, scheduleTimes, timezone } of schedules) {
+      if (scheduleTimes.length > 0) {
+        console.log(`  ${preset}: ${scheduleTimes.join(", ")} (${timezone})`);
+      }
+    }
+    console.log("\n停止するには: npm run daemon:stop");
+
+    logger.info({ pid: process.pid, schedules }, "デーモンを起動しました");
+  }
 }
 
 main();

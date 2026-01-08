@@ -14,7 +14,8 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo "デーモンを起動しています..."
-nohup node dist/daemon.js > /dev/null 2>&1 &
+mkdir -p logs
+nohup node dist/daemon.js "$@" > logs/daemon.log 2>&1 &
 
 sleep 1
 
