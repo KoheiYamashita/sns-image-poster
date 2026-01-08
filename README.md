@@ -4,21 +4,21 @@
 
 ## 機能
 
-- **お題取得**: Twitter/Xから「今日は○○の日」形式のお題を取得
-- **物語生成**: Claude Opus 4.5でキャラクター設定に基づいた物語を生成
+- **お題取得**: Xからお題を取得
+- **物語生成**: ClaudeCodeでキャラクター設定に基づいた物語を生成
 - **画像生成**: Gemini 3 Pro Imageで物語のワンシーンを画像化
 - **4コマ漫画モード**: 起承転結の4コマ漫画+挿絵を自動生成
 - **品質チェック**: 生成画像がキャラクター設定・物語・スタイルに合致しているか検証
 - **自動リトライ**: 品質チェック不合格時にプロンプトを改善して再生成
 - **投稿テキスト作成**: SNS投稿用のテキストとハッシュタグを生成
-- **SNS投稿**: bundle.social API経由で複数SNSに投稿（Twitter/X、Bluesky、Threads等）
+- **SNS投稿**: bundle.social API経由で複数SNSに投稿（X、Bluesky、Threads等）
 - **定期実行**: 指定時刻に自動実行するデーモンモード
 
 ## 必要要件
 
 - Node.js >= 22.0.0
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) がインストール済みであること（Claude Agent SDK用）
-- [TwitterAPI.io](https://twitterapi.io/) APIキー
+- [TwitterAPI.io](https://twitterapi.io/) APIキー（Xからお題を取得する場合）
 - [Gemini API](https://ai.google.dev/) APIキー
 - [bundle.social](https://bundle.social/) APIキー（SNS投稿機能を使用する場合）
 
@@ -37,82 +37,94 @@ cp .env.example .env
 
 ## 環境変数
 
+APIキーと認証情報のみ`.env`に設定します。その他の設定はプリセットで管理します。
+
 ```bash
-# TwitterAPI.io
+# TwitterAPI.io（お題取得用、任意）
 TWITTER_API_IO_KEY=your_api_key
 
-# お題取得設定
-X_TOPIC_SOURCE_ACCOUNT=today_norma      # お題取得元アカウント
-TOPIC_SEARCH_KEYWORD=今日は              # 検索キーワード
-TOPIC_PATTERN=^今日は(.+の日)です！      # お題抽出パターン（正規表現）
-
-# キャラクター設定（複数キャラクター対応）
-CHARACTERS_DIR=./assets/characters       # キャラクターディレクトリ
-CHARACTER_IDS=kanon,yuki                 # 使用キャラクターID（カンマ区切り）
-MAIN_CHARACTER_ID=kanon                  # 主軸キャラクターID
-CHARACTER_SELECTION_MODE=all             # all=全員使用, auto=AIが選択
-ILLUSTRATION_STYLE=3Dアニメーション      # イラストスタイル
-
-# キャラクターディレクトリ構造:
-# assets/characters/
-# ├── kanon/
-# │   ├── prompt.txt        # キャラクター設定（名前、性格など）
-# │   ├── appearance.txt    # 外見プロンプト（英語）
-# │   └── images/           # 参照画像
-# │       ├── front.png
-# │       └── back.png
-# └── yuki/
-#     ├── prompt.txt
-#     ├── appearance.txt
-#     └── images/
-
-# Gemini API
+# Gemini API（画像生成用）
 GEMINI_API_KEY=your_gemini_api_key
-ASPECT_RATIO=1:1                         # 画像比率（未指定時：イラスト=1:1、漫画=3:4）
 
-# コンテンツモード設定
-CONTENT_MODE=illustration                # illustration または manga
-
-# リトライ設定
-MAX_IMAGE_RETRY_COUNT=3                  # 最大リトライ回数
-
-# 投稿設定
-POST_STYLE=カジュアルでフレンドリー      # 投稿文のスタイル
-POST_BASE_HASHTAGS=イラスト,AI           # 基本ハッシュタグ（#なしでOK）
-POST_TARGET_LENGTH=100                   # 目標文字数
-POST_MAX_LENGTH=140                      # 最大文字数
-
-# bundle.social設定（任意：設定しなければ投稿スキップ）
-BUNDLE_SOCIAL_API_KEY=your_api_key       # bundle.social APIキー
-BUNDLE_SOCIAL_TEAM_ID=your_team_id       # bundle.social チームID
-SNS_TARGETS=TWITTER,BLUESKY              # 投稿先SNS（カンマ区切り）
-
-# 引用URL設定（任意）
-QUOTE_URL_TARGETS=TWITTER                # 引用URLを先頭に追加するSNS（カンマ区切り）
+# bundle.social（SNS投稿用、任意）
+BUNDLE_SOCIAL_API_KEY=your_api_key
+BUNDLE_SOCIAL_TEAM_ID=your_team_id
 
 # 通知設定（任意）
-WEBHOOK_URL=https://example.com/webhook  # 成功/エラー時のWebhook送信先
-LOG_FILE_PATH=./logs/workflow.jsonl      # ログ保存先（JSONL形式で追記）
-
-# 定期実行設定（任意）
-SCHEDULE_TIMES=09:00,12:00,18:00         # 定期実行時刻（TZに基づく）
-
-# お題リストファイル設定（任意）
-TOPIC_LIST_FILE=./data/topics.txt        # 設定時はファイルからお題取得
-
-# タイムゾーン
-TZ=Asia/Tokyo
+WEBHOOK_URL=https://example.com/webhook
+LOG_FILE_PATH=./logs/workflow.jsonl
 ```
 
-### お題取得の優先順位
+## プリセット
 
-1. `--topic` 引数 → 手動指定
-2. `TOPIC_LIST_FILE` → ファイルから（1行1お題、ランダム選択、使用後削除）
-3. 上記なし → Twitter API
+設定をJSONファイルで管理し、実行時に`-p`オプションで切り替えます。
+
+### プリセットファイルの作成
+
+`assets/presets/`にJSONファイルを作成:
+
+```json
+{
+  "contentMode": "illustration",
+  "charactersDir": "./assets/characters",
+  "characterIds": ["kanon"],
+  "mainCharacterId": "kanon",
+  "characterSelectionMode": "all",
+  "illustrationStyle": "3Dアニメーション",
+  "aspectRatio": "1:1",
+  "postStyle": "カジュアルでフレンドリー",
+  "postBaseHashtags": ["イラスト", "AI"],
+  "postTargetLength": 100,
+  "postMaxLength": 140,
+  "snsTargets": ["TWITTER", "BLUESKY"],
+  "timezone": "Asia/Tokyo"
+}
+```
+
+### プリセットで指定可能な項目
+
+| 項目 | 説明 | デフォルト |
+|------|------|-----------|
+| `contentMode` | `illustration` または `manga` | `illustration` |
+| `charactersDir` | キャラクターディレクトリ | - |
+| `characterIds` | 使用キャラクターID（配列） | - |
+| `mainCharacterId` | 主軸キャラクターID | - |
+| `characterSelectionMode` | `all`（全員）または `auto`（AI選択） | `all` |
+| `illustrationStyle` | イラストスタイル | - |
+| `aspectRatio` | 画像比率 | イラスト:`1:1`, 漫画:`3:4` |
+| `maxImageRetryCount` | 最大リトライ回数 | `3` |
+| `postStyle` | 投稿文のスタイル | - |
+| `postBaseHashtags` | 基本ハッシュタグ（配列） | - |
+| `postTargetLength` | 目標文字数 | `100` |
+| `postMaxLength` | 最大文字数 | `140` |
+| `snsTargets` | 投稿先SNS（配列） | `[]` |
+| `quoteUrlTargets` | 引用URL付与SNS（配列） | `[]` |
+| `topicSourceAccount` | お題取得元アカウント | - |
+| `topicSearchKeyword` | 検索キーワード | - |
+| `topicPattern` | お題抽出パターン（正規表現） | - |
+| `topicListFile` | お題リストファイル | - |
+| `scheduleTimes` | 定期実行時刻（配列） | - |
+| `timezone` | タイムゾーン | `Asia/Tokyo` |
+
+### キャラクターディレクトリ構造
+
+```
+assets/characters/
+├── kanon/
+│   ├── prompt.txt        # キャラクター設定（名前、性格など）
+│   ├── appearance.txt    # 外見プロンプト（英語）
+│   └── images/           # 参照画像
+│       ├── front.png
+│       └── back.png
+└── yuki/
+    ├── prompt.txt
+    ├── appearance.txt
+    └── images/
+```
 
 ### 対応SNSプラットフォーム
 
-`SNS_TARGETS` に指定可能な値:
+`snsTargets`に指定可能な値:
 - `TWITTER` - Twitter/X
 - `BLUESKY` - Bluesky
 - `THREADS` - Threads
@@ -122,17 +134,25 @@ TZ=Asia/Tokyo
 - `TIKTOK` - TikTok
 - `MASTODON` - Mastodon
 
+### お題取得の優先順位
+
+1. `--topic` 引数 → 手動指定
+2. `topicListFile` → ファイルから（1行1お題、ランダム選択、使用後削除）
+3. 上記なし → Twitter API
+
 ## 使い方
 
 ### 基本実行
 
 ```bash
-# Twitterからお題を自動取得して実行
-npm run start
+# プリセットを指定して実行
+npm run start -- -p my-preset
 
-# お題を直接指定して実行
-npm run start -- --topic "猫の日"
-npm run start -- -t "犬の日"
+# プリセット + お題を直接指定
+npm run start -- -p my-preset -t "猫の日"
+
+# 複数プリセットを並列実行
+npm run start -- -p preset1 -p preset2
 
 # ヘルプ表示
 npm run start -- --help
@@ -141,31 +161,21 @@ npm run start -- --help
 ### 定期実行（デーモンモード）
 
 ```bash
-# デーモンを起動（バックグラウンド実行）
-npm run daemon:start
+# プリセットを指定してデーモンを起動
+npm run daemon:start -- -p my-preset
+
+# 複数プリセットで定期実行
+npm run daemon:start -- -p preset1 -p preset2
 
 # デーモンを停止
 npm run daemon:stop
 ```
 
-SCHEDULE_TIMESで指定した時刻に自動実行されます。
-
-### テストコマンド
-
-```bash
-# 全ワークフローのテスト（お題取得 → 物語生成 → 画像生成 → 投稿テキスト作成）
-npm run test:workflow
-
-# お題取得のみ
-npm run test:topic
-
-# 物語生成のみ
-npm run test:story
-```
+プリセットの`scheduleTimes`で指定した時刻に自動実行されます。
 
 ## ワークフロー
 
-### イラストモード（デフォルト: `CONTENT_MODE=illustration`）
+### イラストモード（デフォルト: `contentMode: "illustration"`）
 
 ```
 1. お題取得 (TwitterAPI.io)
@@ -198,10 +208,12 @@ npm run test:story
 
 ### ログ出力
 
-ワークフロー実行ごとに `logs/workflow-{タイムスタンプ}.log` にログファイルが生成されます。
-コンソールと同じ内容がファイルにも保存されるため、後から実行結果を確認できます。
+ワークフロー実行ごとにログファイルが生成されます。コンソールと同じ内容がファイルにも保存されます。
 
-### 4コマ漫画モード（`CONTENT_MODE=manga`）
+- プリセット指定時: `logs/workflow-{プリセット名}-{タイムスタンプ}.log`
+- 複数プリセット並列実行時は、各プリセットごとに独立したログファイルが作成されます
+
+### 4コマ漫画モード（`contentMode: "manga"`）
 
 ```
 1. お題取得 (TwitterAPI.io)

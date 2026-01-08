@@ -1,0 +1,15 @@
+{
+  "contentMode": "illustration",
+  "charactersDir": "./assets/characters",
+  "characterIds": ["tibi-kanon-3d"],
+  "mainCharacterId": "tibi-kanon-3d",
+  "characterSelectionMode": "all",
+  "illustrationStyle": "3Dアニメーション（立体的なCGレンダリング、滑らかな3Dシェーディング、奥行きと立体感のある表現。2Dフラットなアニメ塗りはNG）",
+  "aspectRatio": "1:1",
+  "maxImageRetryCount": 3,
+  "postStyle": "ちび花音目線での感想や発見、この瞬間の気持ちを素直に表現、絵文字をたくさん使って可愛く",
+  "postBaseHashtags": ["ちび花音", "AIART", "今日は創作の日"],
+  "postTargetLength": 180,
+  "postMaxLength": 200,
+  "timezone": "Asia/Tokyo"
+}

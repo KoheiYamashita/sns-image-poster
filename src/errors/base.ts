@@ -77,3 +77,29 @@ export class MangaQualityCheckError extends WorkflowBaseError {
 export class CharacterSelectionError extends WorkflowBaseError {
   readonly step = "character_selection" as const;
 }
+
+// 設定エラー（ワークフローとは別系統）
+export class ConfigError extends Error {
+  readonly timestamp: Date;
+  readonly details?: Record<string, unknown>;
+
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message);
+    this.name = this.constructor.name;
+    this.timestamp = new Date();
+    this.details = details;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      message: this.message,
+      timestamp: this.timestamp.toISOString(),
+      details: this.details,
+      stack: this.stack,
+    };
+  }
+}
+
+export class PresetLoadError extends ConfigError {}
+export class PresetValidationError extends ConfigError {}

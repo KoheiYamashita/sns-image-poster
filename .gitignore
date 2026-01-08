@@ -29,7 +29,17 @@ coverage/
 output/
 
 # Assets (character images, prompts)
-assets/
+/assets/*
+!/assets/LICENSE_NOTICE.md
+!/assets/presets/
+/assets/presets/*
+!/assets/presets/tibi-kanon-illustration.json
+!/assets/presets/tibi-kanon-manga.json
+!/assets/characters/
+/assets/characters/*
+!/assets/characters/tibi-kanon-2d/
+!/assets/characters/tibi-kanon-3d/
+!/assets/characters/kb-001/
 
 # Twitter cookie (sensitive)
 .twitter-cookie.json

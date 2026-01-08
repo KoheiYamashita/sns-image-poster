@@ -15,14 +15,18 @@ pinoベースのロガー。構造化ログをコンソールとファイルに�
 import { logger, initWorkflowLogger } from "./lib/logger.js";
 
 // ワークフロー開始時にログファイルを初期化
-const logFile = initWorkflowLogger();
+const logFile = initWorkflowLogger("preset-name");
+// → logs/workflow-preset-name-{タイムスタンプ}.log が作成される
+
+// プリセット名なし
+const logFile2 = initWorkflowLogger();
 // → logs/workflow-{タイムスタンプ}.log が作成される
 
 logger.info({ key: "value" }, "メッセージ");
 ```
 
 ### 関数
-- `initWorkflowLogger()` - ワークフロー用ロガーを初期化（コンソール+ファイル出力）
+- `initWorkflowLogger(presetName?)` - ワークフロー用ロガーを初期化（コンソール+ファイル出力）
 - `getLogFilePath()` - 現在のログファイルパスを取得
 
 ## notification

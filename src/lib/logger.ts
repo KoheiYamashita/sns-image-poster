@@ -21,14 +21,18 @@ let currentLogFilePath: string | null = null;
 /**
  * ワークフロー用ロガーを初期化
  * コンソールとファイル両方に出力するように設定
+ * @param presetName プリセット名（ログファイル名に含める）
  * @returns ログファイルのパス
  */
-export function initWorkflowLogger(): string {
+export function initWorkflowLogger(presetName?: string): string {
   const logsDir = "./logs";
   mkdirSync(logsDir, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  currentLogFilePath = join(logsDir, `workflow-${timestamp}.log`);
+  const fileName = presetName
+    ? `workflow-${presetName}-${timestamp}.log`
+    : `workflow-${timestamp}.log`;
+  currentLogFilePath = join(logsDir, fileName);
 
   const fileWriteStream = createWriteStream(currentLogFilePath);
 
