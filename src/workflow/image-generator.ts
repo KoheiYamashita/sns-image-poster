@@ -22,7 +22,7 @@ export async function generateImage(
   customImagePrompt?: string
 ): Promise<GeneratedImage> {
   const imagePrompt = customImagePrompt ?? story.imagePrompt;
-  logger.info({ imagePrompt: imagePrompt.substring(0, 50) + "..." }, "画像生成を開始");
+  logger.info({ imagePrompt }, "画像生成を開始");
 
   const provider = new GeminiProvider(env.GEMINI_API_KEY);
 

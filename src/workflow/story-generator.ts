@@ -89,7 +89,7 @@ export async function generateStory(topic: TopicSource): Promise<GeneratedStory>
       throw new StoryGenerationError("セッションIDが取得できませんでした");
     }
 
-    logger.info({ story: result.story.substring(0, 50) + "...", sessionId }, "物語生成完了");
+    logger.info({ story: result.story, shortStory: result.shortStory, imagePrompt: result.imagePrompt, sessionId }, "物語生成完了");
 
     return {
       fullText: result.story,

@@ -73,7 +73,7 @@ export async function refineImagePrompt(
     return originalPrompt;
   }
 
-  logger.info({ refinedPrompt: result.refinedPrompt.substring(0, 50) + "..." }, "プロンプト改善完了");
+  logger.info({ refinedPrompt: result.refinedPrompt }, "プロンプト改善完了");
 
   return result.refinedPrompt;
 }

@@ -31,10 +31,9 @@ npm install
 # 環境変数の設定
 cp .env.example .env
 # .envを編集
-
-# ビルド
-npm run build
 ```
+
+※ `npm run start` 実行時に自動でビルドされるため、手動ビルドは不要です。
 
 ## 環境変数
 
@@ -182,6 +181,11 @@ npm run test:story
 8. 完了通知 ※オプション
    └─ Webhook送信 / ログ保存
 ```
+
+### ログ出力
+
+ワークフロー実行ごとに `logs/workflow-{タイムスタンプ}.log` にログファイルが生成されます。
+コンソールと同じ内容がファイルにも保存されるため、後から実行結果を確認できます。
 
 ### 4コマ漫画モード（`CONTENT_MODE=manga`）
 

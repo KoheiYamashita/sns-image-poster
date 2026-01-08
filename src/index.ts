@@ -1,6 +1,6 @@
 import { parseCliArgs, printHelp } from "./cli/index.js";
 import { runWorkflow } from "./workflow/runner.js";
-import { logger } from "./lib/logger.js";
+import { initWorkflowLogger, logger } from "./lib/logger.js";
 
 async function main() {
   const args = parseCliArgs();
@@ -10,7 +10,8 @@ async function main() {
     process.exit(0);
   }
 
-  logger.info("SNS Image Poster 起動");
+  const logFile = initWorkflowLogger();
+  logger.info({ logFile }, "SNS Image Poster 起動");
   await runWorkflow(args.topic);
 }
 

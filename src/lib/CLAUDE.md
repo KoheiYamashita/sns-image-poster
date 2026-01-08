@@ -9,12 +9,21 @@
 
 ## logger
 
-pinoベースのロガー。構造化ログを出力。
+pinoベースのロガー。構造化ログをコンソールとファイルに出力。
 
 ```typescript
-import { logger } from "./lib/logger.js";
+import { logger, initWorkflowLogger } from "./lib/logger.js";
+
+// ワークフロー開始時にログファイルを初期化
+const logFile = initWorkflowLogger();
+// → logs/workflow-{タイムスタンプ}.log が作成される
+
 logger.info({ key: "value" }, "メッセージ");
 ```
+
+### 関数
+- `initWorkflowLogger()` - ワークフロー用ロガーを初期化（コンソール+ファイル出力）
+- `getLogFilePath()` - 現在のログファイルパスを取得
 
 ## notification
 

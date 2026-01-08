@@ -43,11 +43,11 @@ npm run build            # TypeScriptビルド
 npm run lint             # ESLint実行
 npm run lint:fix         # ESLint自動修正
 
-# 実行
+# 実行（自動ビルド付き）
 npm run start            # 単発実行（お題自動取得）
 npm run start -- -t "お題"  # お題を指定して実行
 
-# デーモン
+# デーモン（自動ビルド付き）
 npm run daemon:start     # 定期実行開始
 npm run daemon:stop      # 定期実行停止
 
@@ -102,10 +102,15 @@ npm run test:workflow    # ワークフローテスト
 
 **品質優先**: 処理時間よりも出力品質を最優先する。API呼び出し回数や処理時間が増えても、品質向上に繋がる施策は積極的に採用する。
 
+## ログ出力
+
+ワークフロー実行ごとに `logs/workflow-{タイムスタンプ}.log` にログファイルが生成される。
+コンソールと同じ内容がファイルにも保存される。
+
 ## コーディング規約
 
 - ESMモジュール（`import/export`）
 - インポートパスに`.js`拡張子を付ける
 - エラーは`src/errors/`のカスタムエラーを使用
-- ログは`logger`を使用（`console.log`は結果表示のみ）
+- ログはすべて`logger`を使用（`console.log`禁止）
 - 環境変数は`env`オブジェクト経由でアクセス

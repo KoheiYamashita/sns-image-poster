@@ -167,7 +167,15 @@ export async function generateMangaStory(topic: TopicSource): Promise<MangaStory
     };
 
     logger.info(
-      { title: result.title, sessionId },
+      {
+        title: result.title,
+        synopsis: result.synopsis,
+        panels: result.panels,
+        illustration: result.illustration,
+        imagePrompt: result.imagePrompt,
+        shortText: result.shortText,
+        sessionId,
+      },
       "4コマ漫画プロット生成完了"
     );
 

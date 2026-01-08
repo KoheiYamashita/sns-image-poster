@@ -69,45 +69,40 @@ export async function runWorkflow(topic?: string): Promise<void> {
       imageMimeType = mangaResult.imagePath.endsWith(".png") ? "image/png" : "image/jpeg";
 
       // 4コマ漫画モードの結果表示
-      console.log("\n=== 4コマ漫画 生成結果 ===");
-      console.log(`\n【お題】${topicData.topicText}`);
-      console.log(`\n【タイトル】${mangaStory.title}`);
-      console.log(`\n【あらすじ】${mangaStory.synopsis}`);
-      console.log(`\n【4コマ構成】`);
+      logger.info("=== 4コマ漫画 生成結果 ===");
+      logger.info({ お題: topicData.topicText }, "【お題】");
+      logger.info({ タイトル: mangaStory.title }, "【タイトル】");
+      logger.info({ あらすじ: mangaStory.synopsis }, "【あらすじ】");
+      logger.info("【4コマ構成】");
       for (const panel of mangaStory.panels) {
         const typeLabel = { ki: "起", sho: "承", ten: "転", ketsu: "結" }[panel.panelType];
-        console.log(`  ${panel.panelNumber}コマ目（${typeLabel}）: ${panel.description}`);
-        console.log(`    セリフ: 「${panel.dialogue}」`);
+        logger.info({
+          コマ: `${panel.panelNumber}コマ目（${typeLabel}）`,
+          内容: panel.description,
+          セリフ: panel.dialogue,
+        }, "コマ情報");
       }
-      console.log(`\n【挿絵】${mangaStory.illustration.description}`);
-      console.log(`\n【試行回数】${mangaResult.attempts}回`);
+      logger.info({ 挿絵: mangaStory.illustration.description }, "【挿絵】");
+      logger.info({ 試行回数: mangaResult.attempts }, "【試行回数】");
+      logger.info({ ファイル: mangaResult.imagePath }, "【生成画像】");
 
-      console.log(`\n【生成画像】`);
-      console.log(`  ファイル: ${mangaResult.imagePath}`);
-
-      console.log("\n=== 品質チェック結果 ===");
+      logger.info("=== 品質チェック結果 ===");
       const qr = mangaResult.qualityResult;
-      console.log(`\n【判定】${qr.passed ? "✅ 合格" : "❌ 不合格"}`);
-      console.log(`【スコア】${qr.score}/100`);
-      console.log(`\n【詳細】`);
-      console.log(`  キャラクター一貫性: ${qr.characterConsistency ? "✅" : "❌"}`);
-      console.log(`  セリフ可読性:       ${qr.dialogueReadability ? "✅" : "❌"}`);
-      console.log(`  レイアウト正確性:   ${qr.layoutAccuracy ? "✅" : "❌"}`);
-      console.log(`  物語の流れ:         ${qr.narrativeFlow ? "✅" : "❌"}`);
-      console.log(`  挿絵整合性:         ${qr.illustrationMatch ? "✅" : "❌"}`);
+      logger.info({ 判定: qr.passed ? "✅ 合格" : "❌ 不合格", スコア: `${qr.score}/100` }, "【判定】");
+      logger.info({
+        キャラクター一貫性: qr.characterConsistency ? "✅" : "❌",
+        セリフ可読性: qr.dialogueReadability ? "✅" : "❌",
+        レイアウト正確性: qr.layoutAccuracy ? "✅" : "❌",
+        物語の流れ: qr.narrativeFlow ? "✅" : "❌",
+        挿絵整合性: qr.illustrationMatch ? "✅" : "❌",
+      }, "【詳細】");
 
       if (qr.issues.length > 0) {
-        console.log(`\n【問題点】`);
-        for (const issue of qr.issues) {
-          console.log(`  - ${issue}`);
-        }
+        logger.info({ 問題点: qr.issues }, "【問題点】");
       }
 
       if (qr.suggestions.length > 0) {
-        console.log(`\n【改善提案】`);
-        for (const suggestion of qr.suggestions) {
-          console.log(`  - ${suggestion}`);
-        }
+        logger.info({ 改善提案: qr.suggestions }, "【改善提案】");
       }
     } else {
       // イラストモード（既存）
@@ -126,52 +121,37 @@ export async function runWorkflow(topic?: string): Promise<void> {
       imageBuffer = result.image.data;
       imageMimeType = result.image.mimeType;
 
-      console.log("\n=== 生成結果 ===");
-      console.log(`\n【お題】${topicData.topicText}`);
-      console.log(`\n【物語（短縮版）】\n${story.shortText}`);
-      console.log(`\n【試行回数】${result.attempts}回`);
+      logger.info("=== 生成結果 ===");
+      logger.info({ お題: topicData.topicText }, "【お題】");
+      logger.info({ 物語: story.shortText }, "【物語（短縮版）】");
+      logger.info({ 試行回数: result.attempts }, "【試行回数】");
 
-      console.log(`\n【プロンプト履歴】`);
-      for (const [i, prompt] of result.promptHistory.entries()) {
-        console.log(`  ${i + 1}回目: ${prompt.substring(0, 80)}...`);
-      }
+      logger.info({ プロンプト履歴: result.promptHistory }, "【プロンプト履歴】");
 
-      console.log(`\n【生成画像】`);
-      console.log(`  ファイル: ${result.outputPath}`);
-      console.log(`  形式: ${result.image.mimeType}`);
-      console.log(`  サイズ: ${(result.image.data.length / 1024).toFixed(1)} KB`);
+      logger.info({
+        ファイル: result.outputPath,
+        形式: result.image.mimeType,
+        サイズ: `${(result.image.data.length / 1024).toFixed(1)} KB`,
+      }, "【生成画像】");
 
-      console.log("\n=== 品質チェック結果 ===");
-      console.log(
-        `\n【判定】${result.qualityResult.passed ? "✅ 合格" : "❌ 不合格"}`
-      );
-      console.log(`【スコア】${result.qualityResult.score}/100`);
-      console.log(`\n【詳細】`);
-      console.log(
-        `  キャラクター一致: ${result.qualityResult.characterMatch ? "✅" : "❌"}`
-      );
-      console.log(
-        `  物語との整合性:   ${result.qualityResult.storyMatch ? "✅" : "❌"}`
-      );
-      console.log(
-        `  スタイル一致:     ${result.qualityResult.styleMatch ? "✅" : "❌"}`
-      );
-      console.log(
-        `  画像品質:         ${result.qualityResult.qualityMatch ? "✅" : "❌"}`
-      );
+      logger.info("=== 品質チェック結果 ===");
+      logger.info({
+        判定: result.qualityResult.passed ? "✅ 合格" : "❌ 不合格",
+        スコア: `${result.qualityResult.score}/100`,
+      }, "【判定】");
+      logger.info({
+        キャラクター一致: result.qualityResult.characterMatch ? "✅" : "❌",
+        物語との整合性: result.qualityResult.storyMatch ? "✅" : "❌",
+        スタイル一致: result.qualityResult.styleMatch ? "✅" : "❌",
+        画像品質: result.qualityResult.qualityMatch ? "✅" : "❌",
+      }, "【詳細】");
 
       if (result.qualityResult.issues.length > 0) {
-        console.log(`\n【問題点】`);
-        for (const issue of result.qualityResult.issues) {
-          console.log(`  - ${issue}`);
-        }
+        logger.info({ 問題点: result.qualityResult.issues }, "【問題点】");
       }
 
       if (result.qualityResult.suggestions.length > 0) {
-        console.log(`\n【改善提案】`);
-        for (const suggestion of result.qualityResult.suggestions) {
-          console.log(`  - ${suggestion}`);
-        }
+        logger.info({ 改善提案: result.qualityResult.suggestions }, "【改善提案】");
       }
     }
 
@@ -179,12 +159,13 @@ export async function runWorkflow(topic?: string): Promise<void> {
     const post = await formatPost(story, topicData);
     logger.info({ characterCount: post.characterCount }, "投稿テキストを作成しました");
 
-    console.log("\n=== 投稿テキスト ===");
-    console.log(`\n${post.text}`);
-    console.log(`\n【文字数】${post.characterCount}文字`);
-    console.log(`【ハッシュタグ】${post.hashtags.join(" ")}`);
-
-    console.log(`\n生成日時: ${new Date().toLocaleString("ja-JP")}`);
+    logger.info("=== 投稿テキスト ===");
+    logger.info({ テキスト: post.text }, "【投稿内容】");
+    logger.info({
+      文字数: `${post.characterCount}文字`,
+      ハッシュタグ: post.hashtags.join(" "),
+    }, "【投稿情報】");
+    logger.info({ 生成日時: new Date().toLocaleString("ja-JP") }, "【生成日時】");
 
     // Step 5: SNS投稿（オプション）
     let posted = false;
@@ -203,24 +184,17 @@ export async function runWorkflow(topic?: string): Promise<void> {
         env.SNS_TARGETS as SupportedPlatform[]
       );
 
-      console.log("\n=== SNS投稿結果 ===");
+      logger.info("=== SNS投稿結果 ===");
       for (const r of snsResults) {
         if (r.success) {
-          console.log(`\n✅ ${r.platform}: 投稿成功`);
-          if (r.postUrl) {
-            console.log(`   URL: ${r.postUrl}`);
-          }
-          logger.info({ platform: r.platform, postUrl: r.postUrl }, "投稿成功");
+          logger.info({ platform: r.platform, postUrl: r.postUrl }, "✅ 投稿成功");
           posted = true;
         } else {
-          console.log(`\n❌ ${r.platform}: 投稿失敗`);
-          console.log(`   エラー: ${r.error}`);
-          logger.error({ platform: r.platform, error: r.error }, "投稿失敗");
+          logger.error({ platform: r.platform, error: r.error }, "❌ 投稿失敗");
         }
       }
     } else {
       logger.info("SNS投稿はスキップされました（API KEYまたは投稿先が未設定）");
-      console.log("\n※ SNS投稿はスキップされました（BUNDLE_SOCIAL_API_KEYまたはSNS_TARGETSが未設定）");
     }
 
     // FileListTopicProviderの場合、使用済みお題をファイルから削除
