@@ -14,24 +14,15 @@ import {
 import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
 import { generateMangaImage } from "./image-generator.js";
+import {
+  type ImageAppearance,
+  imageAppearanceSchema,
+  buildPanelAppearanceCheckInstructions,
+} from "../shared/appearance-schema.js";
 
 const MODEL = "claude-opus-4-5-20251101";
 
-// 各コマの外見記述スキーマ
-const panelAppearanceSchema = {
-  type: "object",
-  properties: {
-    hairStyle: { type: "string", description: "髪型・髪色の説明" },
-    headwear: { type: "string", description: "帽子・ヘッドフォンの説明" },
-    eyewear: { type: "string", description: "サングラス・眼鏡の説明（なければ「なし」）" },
-    clothing: { type: "string", description: "服装の説明" },
-    accessories: { type: "string", description: "アクセサリー（ペンダント等）の説明" },
-    matchesReference: { type: "boolean", description: "参照キャラクターと一致しているか" },
-  },
-  required: ["hairStyle", "headwear", "eyewear", "clothing", "accessories", "matchesReference"],
-} as const;
-
-// 品質チェックのスキーマ
+// 品質チェックのスキーマ（外見スキーマは共通モジュールから取得）
 const qualityCheckSchema = {
   type: "object",
   properties: {
@@ -39,11 +30,11 @@ const qualityCheckSchema = {
       type: "object",
       description: "各コマのキャラクター外見を詳細に記述",
       properties: {
-        panel1: panelAppearanceSchema,
-        panel2: panelAppearanceSchema,
-        panel3: panelAppearanceSchema,
-        panel4: panelAppearanceSchema,
-        illustration: panelAppearanceSchema,
+        panel1: imageAppearanceSchema,
+        panel2: imageAppearanceSchema,
+        panel3: imageAppearanceSchema,
+        panel4: imageAppearanceSchema,
+        illustration: imageAppearanceSchema,
       },
       required: ["panel1", "panel2", "panel3", "panel4", "illustration"],
     },
@@ -79,22 +70,13 @@ const qualityCheckSchema = {
   ],
 } as const;
 
-interface PanelAppearance {
-  hairStyle: string;
-  headwear: string;
-  eyewear: string;
-  clothing: string;
-  accessories: string;
-  matchesReference: boolean;
-}
-
 interface QualityCheckOutput {
   panelDescriptions: {
-    panel1: PanelAppearance;
-    panel2: PanelAppearance;
-    panel3: PanelAppearance;
-    panel4: PanelAppearance;
-    illustration: PanelAppearance;
+    panel1: ImageAppearance;
+    panel2: ImageAppearance;
+    panel3: ImageAppearance;
+    panel4: ImageAppearance;
+    illustration: ImageAppearance;
   };
   passed: boolean;
   score: number;
@@ -139,32 +121,12 @@ async function saveImage(
 function buildQualityCheckPrompt(story: MangaStory, generatedImagePath: string, referenceImagePaths: string[]): string {
   const refPathsText = referenceImagePaths.map((p, i) => `${i + 2}枚目: ${p}`).join("\n");
   const characterAppearance = env.CHARACTER_APPEARANCE_PROMPT || "参照画像を参照";
+  const appearanceInstructions = buildPanelAppearanceCheckInstructions(characterAppearance);
 
   return `あなたは先ほど4コマ漫画のプロットを作成しました。
 生成された4コマ漫画画像が正しく生成されているかを評価してください。
 
-【キャラクター外見の定義（これが正解）】
-${characterAppearance}
-
-【重要：評価手順】
-以下の手順で厳密に評価してください：
-
-STEP 1: 各コマのキャラクター外見を個別に記述
-panelDescriptionsに、各コマで実際に見えるキャラクターの外見を詳細に記述してください。
-- hairStyle: 髪型・髪色（例：「金髪のツインテール」）
-- headwear: 帽子・ヘッドフォン（例：「青いキャップと青いヘッドフォン」、なければ「なし」）
-- eyewear: サングラス・眼鏡（例：「黒い丸サングラス」、なければ「なし」「目が露出」など）
-- clothing: 服装（例：「水色のパーカー」）
-- accessories: アクセサリー（例：「緑のペンダント」、なければ「なし」）
-- matchesReference: 上記すべてが【キャラクター外見の定義】と一致していればtrue、1つでも違えばfalse
-
-STEP 2: 比較・判定
-各コマのmatchesReferenceを確認し、1つでもfalseがあればcharacterConsistency = false
-
-【アクセサリー優先ルール】
-顔にかかるアクセサリー（サングラス、マスク等）は表情表現より優先されます。
-- 「白目」「青ざめる」などの表情でも、アクセサリーは外れたり透明になったりしてはいけません
-- アクセサリーを通して目が見える場合は matchesReference = false
+${appearanceInstructions}
 
 【その他の評価基準】
 2. セリフ可読性: 各コマのセリフが吹き出し内に読みやすく表示されているか

@@ -4,12 +4,18 @@ import type { GeneratedStory, GeneratedImage, QualityCheckResult } from "../type
 import { QualityCheckError } from "../errors/index.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
+import {
+  type ImageAppearance,
+  imageAppearanceSchema,
+  buildAppearanceCheckInstructions,
+} from "./shared/appearance-schema.js";
 
 const MODEL = "claude-opus-4-5-20251101";
 
 const outputSchema = {
   type: "object",
   properties: {
+    imageAppearance: imageAppearanceSchema,
     passed: { type: "boolean", description: "全項目が満たされている場合のみtrue" },
     score: { type: "number", description: "総合スコア（0-100）" },
     characterMatch: { type: "boolean", description: "キャラクターの特徴が一致しているか" },
@@ -27,10 +33,11 @@ const outputSchema = {
       description: "改善提案",
     },
   },
-  required: ["passed", "score", "characterMatch", "storyMatch", "styleMatch", "qualityMatch", "issues", "suggestions"],
+  required: ["imageAppearance", "passed", "score", "characterMatch", "storyMatch", "styleMatch", "qualityMatch", "issues", "suggestions"],
 } as const;
 
 interface QualityCheckOutput {
+  imageAppearance: ImageAppearance;
   passed: boolean;
   score: number;
   characterMatch: boolean;
@@ -43,18 +50,21 @@ interface QualityCheckOutput {
 
 function buildUserPrompt(generatedImagePath: string, referenceImagePaths: string[]): string {
   const refPathsText = referenceImagePaths.map((p, i) => `${i + 2}枚目: ${p}`).join("\n");
+  const characterAppearance = env.CHARACTER_APPEARANCE_PROMPT || "参照画像を参照";
+  const appearanceInstructions = buildAppearanceCheckInstructions(characterAppearance);
 
   return `あなたは先ほど物語を作成しました。
 生成された挿絵がキャラクター設定と物語に適合しているかを評価してください。
 
-【評価基準】
-1. キャラクターの特徴（髪型、服装、アクセサリー等）が一致しているか
+${appearanceInstructions}
+
+【その他の評価基準】
 2. 物語のシーン・状況と画像が整合しているか
 3. イラストのスタイル（${env.ILLUSTRATION_STYLE}）が一致しているか
 4. 画像に歪みや破綻がないか
 
 【判定】
-- 各項目がすべて満たされている場合のみpassedをtrueにしてください
+- imageAppearance.matchesReferenceを含む全項目がtrueの場合のみpassedをtrueにしてください
 - 1つでも問題があればpassedはfalseです
 
 以下の画像を評価してください：
@@ -115,6 +125,7 @@ export async function checkQuality(
         storyMatch: result.storyMatch,
         styleMatch: result.styleMatch,
         qualityMatch: result.qualityMatch,
+        imageAppearanceMatch: result.imageAppearance.matchesReference,
       },
       "品質チェック完了"
     );
@@ -122,6 +133,7 @@ export async function checkQuality(
     return {
       passed: result.passed,
       score: result.score,
+      imageAppearance: result.imageAppearance,
       characterMatch: result.characterMatch,
       storyMatch: result.storyMatch,
       styleMatch: result.styleMatch,
