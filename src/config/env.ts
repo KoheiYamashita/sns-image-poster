@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { config } from "dotenv";
 import { z } from "zod";
 
@@ -25,12 +24,14 @@ const envSchema = z.object({
   CONTENT_MODE: z.enum(["illustration", "manga"]).default("illustration"),
 
   // キャラクター設定
-  CHARACTER_PROMPT_PATH: z.string().min(1, "CHARACTER_PROMPT_PATHは必須です"),
-  CHARACTER_APPEARANCE_PROMPT: z.string().optional(),
-  CHARACTER_IMAGE_PATHS: z
+  CHARACTERS_DIR: z.string().min(1, "CHARACTERS_DIRは必須です"),
+  CHARACTER_IDS: z
     .string()
-    .optional()
-    .transform((val) => (val ? val.split(",").map((p) => p.trim()) : [])),
+    .min(1, "CHARACTER_IDSは必須です")
+    .transform((val) => val.split(",").map((id) => id.trim())),
+  MAIN_CHARACTER_ID: z.string().min(1, "MAIN_CHARACTER_IDは必須です"),
+  // キャラクター選択モード: all=全員使用, auto=AIが選択
+  CHARACTER_SELECTION_MODE: z.enum(["all", "auto"]).default("all"),
   ILLUSTRATION_STYLE: z.string().default("アニメ風、明るい色調"),
 
   // Gemini API (画像生成)
@@ -90,15 +91,6 @@ const envSchema = z.object({
   TOPIC_LIST_FILE: z.string().optional(),
 });
 
-function loadCharacterPrompt(path: string): string {
-  try {
-    return readFileSync(path, "utf-8").trim();
-  } catch (error) {
-    console.error(`キャラクタープロンプトファイルの読み込みに失敗しました: ${path}`);
-    process.exit(1);
-  }
-}
-
 function loadEnv() {
   const result = envSchema.safeParse(process.env);
 
@@ -110,8 +102,6 @@ function loadEnv() {
     process.exit(1);
   }
 
-  const CHARACTER_PROMPT = loadCharacterPrompt(result.data.CHARACTER_PROMPT_PATH);
-
   // ASPECT_RATIOが未指定の場合、CONTENT_MODEに応じたデフォルトを適用
   const ASPECT_RATIO =
     result.data.ASPECT_RATIO ??
@@ -119,7 +109,6 @@ function loadEnv() {
 
   return {
     ...result.data,
-    CHARACTER_PROMPT,
     ASPECT_RATIO,
   };
 }

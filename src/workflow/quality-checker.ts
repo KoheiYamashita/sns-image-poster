@@ -1,9 +1,11 @@
 import { resolve } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { GeneratedStory, GeneratedImage, QualityCheckResult } from "../types/index.js";
+import type { CharacterMap } from "../types/character.js";
 import { QualityCheckError } from "../errors/index.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
+import { getAllImagePaths } from "../config/character-loader.js";
 import {
   type ImageAppearance,
   imageAppearanceSchema,
@@ -15,7 +17,13 @@ const MODEL = "claude-opus-4-5-20251101";
 const outputSchema = {
   type: "object",
   properties: {
-    imageAppearance: imageAppearanceSchema,
+    characterAppearances: {
+      type: "array",
+      items: imageAppearanceSchema,
+      description: "各キャラクターの外見評価",
+    },
+    allCharactersPresent: { type: "boolean", description: "全キャラクターが画像内に存在するか" },
+    allCharactersMatch: { type: "boolean", description: "全キャラクターが参照画像と一致するか" },
     passed: { type: "boolean", description: "全項目が満たされている場合のみtrue" },
     score: { type: "number", description: "総合スコア（0-100）" },
     characterMatch: { type: "boolean", description: "キャラクターの特徴が一致しているか" },
@@ -33,11 +41,13 @@ const outputSchema = {
       description: "改善提案",
     },
   },
-  required: ["imageAppearance", "passed", "score", "characterMatch", "storyMatch", "styleMatch", "qualityMatch", "issues", "suggestions"],
+  required: ["characterAppearances", "allCharactersPresent", "allCharactersMatch", "passed", "score", "characterMatch", "storyMatch", "styleMatch", "qualityMatch", "issues", "suggestions"],
 } as const;
 
 interface QualityCheckOutput {
-  imageAppearance: ImageAppearance;
+  characterAppearances: ImageAppearance[];
+  allCharactersPresent: boolean;
+  allCharactersMatch: boolean;
   passed: boolean;
   score: number;
   characterMatch: boolean;
@@ -48,10 +58,13 @@ interface QualityCheckOutput {
   suggestions: string[];
 }
 
-function buildUserPrompt(generatedImagePath: string, referenceImagePaths: string[]): string {
+function buildUserPrompt(
+  generatedImagePath: string,
+  referenceImagePaths: string[],
+  characters: CharacterMap
+): string {
   const refPathsText = referenceImagePaths.map((p, i) => `${i + 2}枚目: ${p}`).join("\n");
-  const characterAppearance = env.CHARACTER_APPEARANCE_PROMPT || "参照画像を参照";
-  const appearanceInstructions = buildAppearanceCheckInstructions(characterAppearance);
+  const appearanceInstructions = buildAppearanceCheckInstructions(characters);
 
   return `あなたは先ほど物語を作成しました。
 生成された挿絵がキャラクター設定と物語に適合しているかを評価してください。
@@ -64,7 +77,7 @@ ${appearanceInstructions}
 4. 画像に歪みや破綻がないか
 
 【判定】
-- imageAppearance.matchesReferenceを含む全項目がtrueの場合のみpassedをtrueにしてください
+- allCharactersPresent かつ allCharactersMatch かつ その他全項目がtrueの場合のみpassedをtrueにしてください
 - 1つでも問題があればpassedはfalseです
 
 以下の画像を評価してください：
@@ -75,18 +88,20 @@ ${refPathsText}`;
 export async function checkQuality(
   story: GeneratedStory,
   image: GeneratedImage,
-  generatedImagePath: string
+  generatedImagePath: string,
+  characters: CharacterMap
 ): Promise<QualityCheckResult> {
-  logger.info({ sessionId: story.sessionId }, "品質チェックを開始");
+  logger.info({ sessionId: story.sessionId, characterCount: characters.size }, "品質チェックを開始");
 
   try {
-    // 参照画像のパスを絶対パスに変換
-    const referenceImagePaths = env.CHARACTER_IMAGE_PATHS.map((p) => resolve(p));
+    // 全キャラクターの参照画像のパスを絶対パスに変換
+    const allImagePaths = getAllImagePaths(characters);
+    const referenceImagePaths = allImagePaths.map((p) => resolve(p));
     const absoluteGeneratedImagePath = resolve(generatedImagePath);
 
     logger.info({ generatedImagePath: absoluteGeneratedImagePath, referenceCount: referenceImagePaths.length }, "画像パスを設定");
 
-    const userPrompt = buildUserPrompt(absoluteGeneratedImagePath, referenceImagePaths);
+    const userPrompt = buildUserPrompt(absoluteGeneratedImagePath, referenceImagePaths, characters);
     let result: QualityCheckOutput | null = null;
 
     // セッションを再開して品質チェックを実行
@@ -121,11 +136,12 @@ export async function checkQuality(
       {
         passed: result.passed,
         score: result.score,
+        allCharactersPresent: result.allCharactersPresent,
+        allCharactersMatch: result.allCharactersMatch,
         characterMatch: result.characterMatch,
         storyMatch: result.storyMatch,
         styleMatch: result.styleMatch,
         qualityMatch: result.qualityMatch,
-        imageAppearanceMatch: result.imageAppearance.matchesReference,
       },
       "品質チェック完了"
     );
@@ -133,7 +149,9 @@ export async function checkQuality(
     return {
       passed: result.passed,
       score: result.score,
-      imageAppearance: result.imageAppearance,
+      characterAppearances: result.characterAppearances,
+      allCharactersPresent: result.allCharactersPresent,
+      allCharactersMatch: result.allCharactersMatch,
       characterMatch: result.characterMatch,
       storyMatch: result.storyMatch,
       styleMatch: result.styleMatch,

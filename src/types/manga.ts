@@ -1,3 +1,5 @@
+import type { CharacterDialogue } from "./character.js";
+
 /** コンテンツ生成モード */
 export type ContentMode = "illustration" | "manga";
 
@@ -6,7 +8,7 @@ export interface MangaPanel {
   panelNumber: 1 | 2 | 3 | 4;
   panelType: "ki" | "sho" | "ten" | "ketsu";
   description: string;
-  dialogue: string;
+  dialogues: CharacterDialogue[];
 }
 
 /** 情景挿絵 */

@@ -7,12 +7,14 @@ import type {
   MangaQualityCheckResult,
   GeneratedImage,
 } from "../../types/index.js";
+import type { CharacterMap } from "../../types/character.js";
 import {
   MangaImageGenerationError,
   MangaQualityCheckError,
 } from "../../errors/index.js";
 import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
+import { getAllImagePaths } from "../../config/character-loader.js";
 import { generateMangaImage } from "./image-generator.js";
 import {
   type ImageAppearance,
@@ -28,16 +30,18 @@ const qualityCheckSchema = {
   properties: {
     panelDescriptions: {
       type: "object",
-      description: "各コマのキャラクター外見を詳細に記述",
+      description: "各コマのキャラクター外見を詳細に記述（各コマは全キャラクターの配列）",
       properties: {
-        panel1: imageAppearanceSchema,
-        panel2: imageAppearanceSchema,
-        panel3: imageAppearanceSchema,
-        panel4: imageAppearanceSchema,
-        illustration: imageAppearanceSchema,
+        panel1: { type: "array", items: imageAppearanceSchema, description: "1コマ目の全キャラクター外見" },
+        panel2: { type: "array", items: imageAppearanceSchema, description: "2コマ目の全キャラクター外見" },
+        panel3: { type: "array", items: imageAppearanceSchema, description: "3コマ目の全キャラクター外見" },
+        panel4: { type: "array", items: imageAppearanceSchema, description: "4コマ目の全キャラクター外見" },
+        illustration: { type: "array", items: imageAppearanceSchema, description: "挿絵の全キャラクター外見" },
       },
       required: ["panel1", "panel2", "panel3", "panel4", "illustration"],
     },
+    allCharactersPresent: { type: "boolean", description: "全キャラクターが全コマ・挿絵内に存在するか" },
+    allCharactersMatch: { type: "boolean", description: "全キャラクターが参照画像と一致するか" },
     passed: { type: "boolean", description: "全項目が満たされている場合のみtrue" },
     score: { type: "number", description: "総合スコア（0-100）" },
     characterConsistency: { type: "boolean", description: "全コマでキャラクターの外見が一貫しているか" },
@@ -58,6 +62,8 @@ const qualityCheckSchema = {
   },
   required: [
     "panelDescriptions",
+    "allCharactersPresent",
+    "allCharactersMatch",
     "passed",
     "score",
     "characterConsistency",
@@ -72,12 +78,14 @@ const qualityCheckSchema = {
 
 interface QualityCheckOutput {
   panelDescriptions: {
-    panel1: ImageAppearance;
-    panel2: ImageAppearance;
-    panel3: ImageAppearance;
-    panel4: ImageAppearance;
-    illustration: ImageAppearance;
+    panel1: ImageAppearance[];
+    panel2: ImageAppearance[];
+    panel3: ImageAppearance[];
+    panel4: ImageAppearance[];
+    illustration: ImageAppearance[];
   };
+  allCharactersPresent: boolean;
+  allCharactersMatch: boolean;
   passed: boolean;
   score: number;
   characterConsistency: boolean;
@@ -118,15 +126,27 @@ async function saveImage(
   return outputPath;
 }
 
-function buildQualityCheckPrompt(story: MangaStory, generatedImagePath: string, referenceImagePaths: string[]): string {
+function formatDialoguesForCheck(dialogues: Array<{ characterName: string; text: string }>): string {
+  if (dialogues.length === 0) return "(セリフなし)";
+  return dialogues.map(d => `${d.characterName}「${d.text}」`).join(" / ");
+}
+
+function buildQualityCheckPrompt(
+  story: MangaStory,
+  generatedImagePath: string,
+  referenceImagePaths: string[],
+  characters: CharacterMap
+): string {
   const refPathsText = referenceImagePaths.map((p, i) => `${i + 2}枚目: ${p}`).join("\n");
-  const characterAppearance = env.CHARACTER_APPEARANCE_PROMPT || "参照画像を参照";
-  const appearanceInstructions = buildPanelAppearanceCheckInstructions(characterAppearance);
+  const appearanceInstructions = buildPanelAppearanceCheckInstructions(characters);
+  const characterCount = characters.size;
 
   return `あなたは先ほど4コマ漫画のプロットを作成しました。
 生成された4コマ漫画画像が正しく生成されているかを評価してください。
 
 ${appearanceInstructions}
+
+【重要】全${characterCount}キャラクターが各コマおよび挿絵内に存在し、参照画像と一致している必要があります。
 
 【その他の評価基準】
 2. セリフ可読性: 各コマのセリフが吹き出し内に読みやすく表示されているか
@@ -136,14 +156,14 @@ ${appearanceInstructions}
 
 【期待されるプロット】
 タイトル: ${story.title}
-1コマ目（起）: ${story.panels[0].description} / セリフ: ${story.panels[0].dialogue}
-2コマ目（承）: ${story.panels[1].description} / セリフ: ${story.panels[1].dialogue}
-3コマ目（転）: ${story.panels[2].description} / セリフ: ${story.panels[2].dialogue}
-4コマ目（結）: ${story.panels[3].description} / セリフ: ${story.panels[3].dialogue}
+1コマ目（起）: ${story.panels[0].description} / セリフ: ${formatDialoguesForCheck(story.panels[0].dialogues)}
+2コマ目（承）: ${story.panels[1].description} / セリフ: ${formatDialoguesForCheck(story.panels[1].dialogues)}
+3コマ目（転）: ${story.panels[2].description} / セリフ: ${formatDialoguesForCheck(story.panels[2].dialogues)}
+4コマ目（結）: ${story.panels[3].description} / セリフ: ${formatDialoguesForCheck(story.panels[3].dialogues)}
 挿絵: ${story.illustration.description}
 
 【判定】
-- characterConsistencyを含む全項目がtrueの場合のみpassedをtrueにしてください
+- allCharactersPresent かつ allCharactersMatch かつ characterConsistencyを含む全項目がtrueの場合のみpassedをtrueにしてください
 - 1つでも問題があればpassedはfalseです
 
 以下の画像を評価してください：
@@ -153,15 +173,17 @@ ${refPathsText}`;
 
 async function checkMangaQuality(
   story: MangaStory,
-  generatedImagePath: string
+  generatedImagePath: string,
+  characters: CharacterMap
 ): Promise<MangaQualityCheckResult> {
-  logger.info({ sessionId: story.sessionId }, "4コマ漫画品質チェックを開始");
+  logger.info({ sessionId: story.sessionId, characterCount: characters.size }, "4コマ漫画品質チェックを開始");
 
   try {
-    const referenceImagePaths = env.CHARACTER_IMAGE_PATHS.map((p) => resolve(p));
+    const allImagePaths = getAllImagePaths(characters);
+    const referenceImagePaths = allImagePaths.map((p) => resolve(p));
     const absoluteGeneratedImagePath = resolve(generatedImagePath);
 
-    const userPrompt = buildQualityCheckPrompt(story, absoluteGeneratedImagePath, referenceImagePaths);
+    const userPrompt = buildQualityCheckPrompt(story, absoluteGeneratedImagePath, referenceImagePaths, characters);
     let result: QualityCheckOutput | null = null;
 
     for await (const message of query({
@@ -297,25 +319,26 @@ async function refineMangaPrompt(
 
 export async function executeMangaWorkflow(
   story: MangaStory,
-  outputDir: string
+  outputDir: string,
+  characters: CharacterMap
 ): Promise<MangaWorkflowResult> {
   const maxRetries = env.MAX_IMAGE_RETRY_COUNT;
   let currentPrompt = story.imagePrompt;
 
-  logger.info({ maxRetries, sessionId: story.sessionId, title: story.title }, "4コマ漫画ワークフロー開始");
+  logger.info({ maxRetries, sessionId: story.sessionId, title: story.title, characterCount: characters.size }, "4コマ漫画ワークフロー開始");
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     logger.info({ attempt, maxRetries }, `4コマ漫画生成試行 ${attempt}/${maxRetries}`);
 
     // 1. 画像生成
-    const image = await generateMangaImage(story, currentPrompt);
+    const image = await generateMangaImage(story, characters, currentPrompt);
 
     // 2. 画像保存
     const outputPath = await saveImage(image, outputDir, attempt);
     logger.info({ outputPath }, "4コマ漫画画像を保存しました");
 
     // 3. 品質チェック
-    const qualityResult = await checkMangaQuality(story, outputPath);
+    const qualityResult = await checkMangaQuality(story, outputPath, characters);
 
     if (qualityResult.passed) {
       logger.info({ attempt, score: qualityResult.score }, "4コマ漫画品質チェック合格");

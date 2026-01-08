@@ -1,5 +1,6 @@
 export type WorkflowStep =
   | "topic_fetch"
+  | "character_selection"
   | "story_generation"
   | "image_generation"
   | "quality_check"
@@ -71,4 +72,8 @@ export class MangaImageGenerationError extends WorkflowBaseError {
 
 export class MangaQualityCheckError extends WorkflowBaseError {
   readonly step = "manga_quality_check" as const;
+}
+
+export class CharacterSelectionError extends WorkflowBaseError {
+  readonly step = "character_selection" as const;
 }

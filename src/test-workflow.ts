@@ -2,10 +2,15 @@ import { TwitterApiIoProvider } from "./providers/topic/index.js";
 import { generateStory } from "./workflow/story-generator.js";
 import { executeImageWorkflow } from "./workflow/image-workflow.js";
 import { formatPost } from "./workflow/post-formatter.js";
+import { loadCharacters } from "./config/character-loader.js";
 import { logger } from "./lib/logger.js";
 
 async function main() {
   logger.info("画像生成テストを開始します");
+
+  // Step 0: キャラクター読み込み
+  const characters = loadCharacters();
+  logger.info({ characterCount: characters.size }, "キャラクター読み込み完了");
 
   // Step 1: お題を取得
   const topicProvider = new TwitterApiIoProvider();
@@ -13,12 +18,12 @@ async function main() {
   logger.info({ topicText: topic.topicText }, "お題を取得しました");
 
   // Step 2: 物語を生成
-  const story = await generateStory(topic);
+  const story = await generateStory(topic, characters);
   logger.info({ imagePrompt: story.imagePrompt, sessionId: story.sessionId }, "物語を生成しました");
 
   // Step 3: 画像生成ワークフロー（リトライ込み）
   const outputDir = "./output";
-  const result = await executeImageWorkflow(story, outputDir);
+  const result = await executeImageWorkflow(story, outputDir, characters);
 
   // Step 4: 投稿テキスト作成
   const post = await formatPost(story, topic);

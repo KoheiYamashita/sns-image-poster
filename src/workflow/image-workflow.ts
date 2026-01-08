@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { GeneratedStory, GeneratedImage, QualityCheckResult } from "../types/index.js";
+import type { CharacterMap } from "../types/character.js";
 import { ImageGenerationError } from "../errors/index.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
@@ -34,19 +35,20 @@ async function saveImage(
 
 export async function executeImageWorkflow(
   story: GeneratedStory,
-  outputDir: string
+  outputDir: string,
+  characters: CharacterMap
 ): Promise<ImageWorkflowResult> {
   const maxRetries = env.MAX_IMAGE_RETRY_COUNT;
   let currentPrompt = story.imagePrompt;
   const promptHistory: string[] = [];
 
-  logger.info({ maxRetries, sessionId: story.sessionId }, "画像生成ワークフロー開始");
+  logger.info({ maxRetries, sessionId: story.sessionId, characterCount: characters.size }, "画像生成ワークフロー開始");
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     logger.info({ attempt, maxRetries }, `画像生成試行 ${attempt}/${maxRetries}`);
 
     // 1. 画像生成
-    const image = await generateImage(story, currentPrompt);
+    const image = await generateImage(story, characters, currentPrompt);
     promptHistory.push(image.prompt);
 
     // 2. 画像保存
@@ -54,7 +56,7 @@ export async function executeImageWorkflow(
     logger.info({ outputPath }, "画像を保存しました");
 
     // 3. 品質チェック
-    const qualityResult = await checkQuality(story, image, outputPath);
+    const qualityResult = await checkQuality(story, image, outputPath, characters);
 
     if (qualityResult.passed) {
       logger.info({ attempt, score: qualityResult.score }, "品質チェック合格");

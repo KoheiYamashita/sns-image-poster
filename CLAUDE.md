@@ -31,7 +31,12 @@ src/
 └── workflow/         # ワークフロー処理
     └── manga/        # 4コマ漫画モード
 scripts/              # デーモン管理スクリプト
-assets/               # キャラクター参照画像
+assets/
+└── characters/       # キャラクター設定
+    └── {id}/         # キャラクターID（ディレクトリ名）
+        ├── prompt.txt      # キャラクター設定プロンプト
+        ├── appearance.txt  # 外見プロンプト（英語）
+        └── images/         # 参照画像
 ```
 
 ## コマンド
@@ -81,7 +86,14 @@ npm run test:workflow    # ワークフローテスト
 ### 必須
 - `TWITTER_API_IO_KEY` - TwitterAPI.io APIキー
 - `GEMINI_API_KEY` - Gemini APIキー
-- `CHARACTER_PROMPT_PATH` - キャラクタープロンプトファイル
+
+### キャラクター設定
+- `CHARACTERS_DIR` - キャラクターディレクトリ（例：`./assets/characters`）
+- `CHARACTER_IDS` - 使用キャラクターID（カンマ区切り、例：`kanon,yuki`）
+- `MAIN_CHARACTER_ID` - 主軸キャラクターID
+- `CHARACTER_SELECTION_MODE` - `all`（デフォルト）または `auto`
+  - `all`: 全キャラクター使用
+  - `auto`: AIがお題に基づいて適切なキャラクターを選択
 
 ### 投稿設定
 - `BUNDLE_SOCIAL_API_KEY` - Bundle Social APIキー

@@ -1,7 +1,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { TopicSource, MangaStory, MangaPanel, MangaIllustration } from "../../types/index.js";
+import type { CharacterMap, CharacterDialogue } from "../../types/character.js";
 import { MangaStoryGenerationError } from "../../errors/index.js";
-import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
 
 const MODEL = "claude-opus-4-5-20251101";
@@ -24,9 +24,21 @@ const outputSchema = {
             description: "起承転結のタイプ",
           },
           description: { type: "string", description: "シーンの説明" },
-          dialogue: { type: "string", description: "キャラクターのセリフ（20文字以内）" },
+          dialogues: {
+            type: "array",
+            description: "キャラクターのセリフ（複数キャラクターの会話）",
+            items: {
+              type: "object",
+              properties: {
+                characterId: { type: "string", description: "キャラクターID" },
+                characterName: { type: "string", description: "キャラクター名" },
+                text: { type: "string", description: "セリフ（15文字以内）" },
+              },
+              required: ["characterId", "characterName", "text"],
+            },
+          },
         },
-        required: ["panelNumber", "panelType", "description", "dialogue"],
+        required: ["panelNumber", "panelType", "description", "dialogues"],
       },
       minItems: 4,
       maxItems: 4,
@@ -55,7 +67,11 @@ interface MangaStoryOutput {
     panelNumber: number;
     panelType: "ki" | "sho" | "ten" | "ketsu";
     description: string;
-    dialogue: string;
+    dialogues: Array<{
+      characterId: string;
+      characterName: string;
+      text: string;
+    }>;
   }>;
   illustration: {
     description: string;
@@ -64,12 +80,35 @@ interface MangaStoryOutput {
   shortText: string;
 }
 
-function buildSystemPrompt(): string {
+function buildCharacterDescriptions(characters: CharacterMap): string {
+  const descriptions: string[] = [];
+  for (const char of characters.values()) {
+    const mainLabel = char.isMain ? " ★主軸キャラクター" : "";
+    descriptions.push(`【${char.name}（ID: ${char.id}）】${mainLabel}
+${char.prompt}`);
+  }
+  return descriptions.join("\n\n");
+}
+
+function buildSystemPrompt(characters: CharacterMap): string {
+  const characterDescriptions = buildCharacterDescriptions(characters);
+  const characterCount = characters.size;
+  const characterIds = Array.from(characters.values()).map(c => `${c.id}（${c.name}）`).join(", ");
+
   return `あなたは4コマ漫画の作家です。
 与えられたキャラクター設定とお題に基づいて、4コマ漫画のプロットを作成してください。
 
-【キャラクター設定】
-${env.CHARACTER_PROMPT}
+【登場キャラクター（${characterCount}人）】
+${characterDescriptions}
+
+【キャラクターID一覧】
+${characterIds}
+
+【重要な指示】
+- 全キャラクターを4コマ内で活躍させてください
+- キャラクター間の掛け合い・ボケとツッコミを活かしてください
+- 各キャラクターの個性・口調・関係性を反映してください
+- 主軸キャラクターを中心に物語を描いてください
 
 【イラストスタイル】
 2D漫画/アニメスタイル（参照画像が3Dでも2D漫画スタイルで描画）
@@ -79,29 +118,32 @@ ${env.CHARACTER_PROMPT}
 
 【4コマ漫画のレイアウト】
 - 左側60%: 4コマが縦に並ぶ（起・承・転・結）
-- 右側40%: 物語の情景を描いた挿絵
+- 右側40%: 物語の情景を描いた挿絵（全キャラクターを含む）
 
 【出力形式】
 以下をJSON形式で出力してください：
 1. title: 4コマ漫画のタイトル
 2. synopsis: あらすじ（50文字以内）
-3. panels: 4コマの配列（各コマにpanelNumber, panelType, description, dialogue）
-4. illustration: 右側の情景挿絵の説明
+3. panels: 4コマの配列（各コマにpanelNumber, panelType, description, dialogues）
+   - dialoguesは複数キャラクターの会話配列（characterId, characterName, text）
+4. illustration: 右側の情景挿絵の説明（全キャラクターを含む）
 5. imagePrompt: 4コマ漫画全体を1枚の画像として生成するための英語プロンプト
    - レイアウト指示（左60%に4コマ縦並び、右40%に挿絵）を含める
    - 各コマの内容とセリフを含める
-   - キャラクターの外見を含める
+   - 全キャラクターの外見を含める
 6. shortText: SNS投稿用テキスト（100文字以内）
 
 【重要】
-- 各コマのセリフは20文字以内で簡潔に
+- 各セリフは15文字以内で簡潔に
+- 1コマに複数キャラクターのセリフを入れることができます
 - imagePromptは英語で、Geminiが1枚の画像として生成できるよう詳細に記述
 
 【面白い4コマを作るコツ】
 1. オチから逆算: まず4コマ目の面白いオチを考え、そこに至る流れを逆算して設計する
 2. 「転」で意外性: 3コマ目で読者の予想を裏切る展開を入れる（「そんなバカな！」と思わせる）
 3. 日常からの逸脱: ありふれた状況から予想外の方向に話を転がす
-4. シンプルに: 複雑な設定説明は避け、すぐに笑いに入る`;
+4. シンプルに: 複雑な設定説明は避け、すぐに笑いに入る
+5. 掛け合いを活かす: キャラクター間のボケとツッコミで笑いを生む`;
 }
 
 function buildUserPrompt(topic: TopicSource): string {
@@ -111,10 +153,13 @@ ${topic.topicText}
 このお題に関連した4コマ漫画のプロットを作成してください。`;
 }
 
-export async function generateMangaStory(topic: TopicSource): Promise<MangaStory> {
-  logger.info({ topicText: topic.topicText }, "4コマ漫画プロット生成を開始");
+export async function generateMangaStory(
+  topic: TopicSource,
+  characters: CharacterMap
+): Promise<MangaStory> {
+  logger.info({ topicText: topic.topicText, characterCount: characters.size }, "4コマ漫画プロット生成を開始");
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = buildSystemPrompt(characters);
   const userPrompt = buildUserPrompt(topic);
 
   try {
@@ -159,7 +204,11 @@ export async function generateMangaStory(topic: TopicSource): Promise<MangaStory
       panelNumber: p.panelNumber as 1 | 2 | 3 | 4,
       panelType: p.panelType,
       description: p.description,
-      dialogue: p.dialogue,
+      dialogues: p.dialogues.map((d) => ({
+        characterId: d.characterId,
+        characterName: d.characterName,
+        text: d.text,
+      })) as CharacterDialogue[],
     })) as [MangaPanel, MangaPanel, MangaPanel, MangaPanel];
 
     const illustration: MangaIllustration = {

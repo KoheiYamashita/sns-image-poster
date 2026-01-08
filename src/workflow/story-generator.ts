@@ -1,5 +1,6 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { TopicSource, GeneratedStory } from "../types/index.js";
+import type { CharacterMap } from "../types/character.js";
 import { StoryGenerationError } from "../errors/index.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
@@ -22,12 +23,31 @@ interface StoryOutput {
   imagePrompt: string;
 }
 
-function buildSystemPrompt(): string {
+function buildCharacterDescriptions(characters: CharacterMap): string {
+  const descriptions: string[] = [];
+  for (const char of characters.values()) {
+    const mainLabel = char.isMain ? " ★主軸キャラクター（物語の視点）" : "";
+    descriptions.push(`【${char.name}（ID: ${char.id}）】${mainLabel}
+${char.prompt}`);
+  }
+  return descriptions.join("\n\n");
+}
+
+function buildSystemPrompt(characters: CharacterMap): string {
+  const characterDescriptions = buildCharacterDescriptions(characters);
+  const characterCount = characters.size;
+
   return `あなたは創造的な物語作家です。
 与えられたキャラクター設定とお題に基づいて、短い物語を作成してください。
 
-【キャラクター設定】
-${env.CHARACTER_PROMPT}
+【登場キャラクター（${characterCount}人）】
+${characterDescriptions}
+
+【重要な指示】
+- 全キャラクターを物語に登場させてください
+- キャラクター間の掛け合い（会話）を含めてください
+- 各キャラクターの個性・口調を反映してください
+- 主軸キャラクターの視点で物語を描いてください
 
 【イラストスタイル】
 ${env.ILLUSTRATION_STYLE}
@@ -36,7 +56,7 @@ ${env.ILLUSTRATION_STYLE}
 以下の3つをJSON形式で出力してください：
 1. story: 物語（フルバージョン）200-300文字程度
 2. shortStory: 物語（短縮版）100文字以内のSNS投稿用
-3. imagePrompt: 物語のワンシーンを描くための英語プロンプト`;
+3. imagePrompt: 全キャラクターが登場するシーンを描くための英語プロンプト`;
 }
 
 function buildUserPrompt(topic: TopicSource): string {
@@ -46,10 +66,13 @@ ${topic.topicText}
 このお題に関連した物語を作成してください。`;
 }
 
-export async function generateStory(topic: TopicSource): Promise<GeneratedStory> {
-  logger.info({ topicText: topic.topicText }, "物語生成を開始");
+export async function generateStory(
+  topic: TopicSource,
+  characters: CharacterMap
+): Promise<GeneratedStory> {
+  logger.info({ topicText: topic.topicText, characterCount: characters.size }, "物語生成を開始");
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = buildSystemPrompt(characters);
   const userPrompt = buildUserPrompt(topic);
 
   try {

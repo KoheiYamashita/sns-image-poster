@@ -4,7 +4,9 @@ export type { ImageAppearance } from "../workflow/shared/appearance-schema.js";
 export interface QualityCheckResult {
   passed: boolean;
   score: number;
-  imageAppearance: import("../workflow/shared/appearance-schema.js").ImageAppearance;
+  characterAppearances: import("../workflow/shared/appearance-schema.js").ImageAppearance[];
+  allCharactersPresent: boolean;
+  allCharactersMatch: boolean;
   characterMatch: boolean;
   storyMatch: boolean;
   styleMatch: boolean;

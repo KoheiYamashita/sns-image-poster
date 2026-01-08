@@ -115,13 +115,6 @@ export class TwitterApiIoProvider implements TopicProvider {
       .toLocaleDateString("en-CA", { timeZone: tz })
       .split("T")[0]!;
 
-    // そのタイムゾーンの0時をUTCに変換
-    const localMidnightUTC = new Date(
-      new Date(localDateStr + "T00:00:00").toLocaleString("en-US", {
-        timeZone: tz,
-      })
-    );
-
     // タイムゾーンオフセットを計算してUTC時刻を取得
     const midnightInTZ = new Date(
       Date.UTC(

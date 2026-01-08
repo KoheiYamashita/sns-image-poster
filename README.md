@@ -46,11 +46,25 @@ X_TOPIC_SOURCE_ACCOUNT=today_norma      # お題取得元アカウント
 TOPIC_SEARCH_KEYWORD=今日は              # 検索キーワード
 TOPIC_PATTERN=^今日は(.+の日)です！      # お題抽出パターン（正規表現）
 
-# キャラクター設定
-CHARACTER_PROMPT_PATH=./assets/character.txt  # キャラクター設定ファイル
-CHARACTER_IMAGE_PATHS=./assets/ref1.png,./assets/ref2.png  # 参照画像（カンマ区切り）
-CHARACTER_APPEARANCE_PROMPT=blonde hair, blue eyes...  # 英語の外見プロンプト
+# キャラクター設定（複数キャラクター対応）
+CHARACTERS_DIR=./assets/characters       # キャラクターディレクトリ
+CHARACTER_IDS=kanon,yuki                 # 使用キャラクターID（カンマ区切り）
+MAIN_CHARACTER_ID=kanon                  # 主軸キャラクターID
+CHARACTER_SELECTION_MODE=all             # all=全員使用, auto=AIが選択
 ILLUSTRATION_STYLE=3Dアニメーション      # イラストスタイル
+
+# キャラクターディレクトリ構造:
+# assets/characters/
+# ├── kanon/
+# │   ├── prompt.txt        # キャラクター設定（名前、性格など）
+# │   ├── appearance.txt    # 外見プロンプト（英語）
+# │   └── images/           # 参照画像
+# │       ├── front.png
+# │       └── back.png
+# └── yuki/
+#     ├── prompt.txt
+#     ├── appearance.txt
+#     └── images/
 
 # Gemini API
 GEMINI_API_KEY=your_gemini_api_key
@@ -226,7 +240,8 @@ src/
 ├── cli/
 │   └── args.ts             # CLI引数パース
 ├── config/
-│   └── env.ts              # 環境変数管理
+│   ├── env.ts              # 環境変数管理
+│   └── character-loader.ts # キャラクター読み込み
 ├── providers/
 │   ├── topic/              # お題取得プロバイダー
 │   │   ├── twitter-api-io.ts  # Twitter自動取得
@@ -252,6 +267,7 @@ src/
 │       └── workflow.ts         # 漫画ワークフロー
 ├── daemon.ts               # デーモンエントリーポイント
 ├── types/                  # 型定義
+│   └── character.ts        # キャラクター関連型
 ├── errors/                 # エラークラス
 └── lib/
     ├── logger.ts           # ロガー

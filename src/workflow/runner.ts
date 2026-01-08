@@ -11,10 +11,12 @@ import {
 import { generateStory } from "./story-generator.js";
 import { executeImageWorkflow } from "./image-workflow.js";
 import { generateMangaStory, executeMangaWorkflow } from "./manga/index.js";
+import { selectCharacters } from "./character-selector.js";
 import { formatPost } from "./post-formatter.js";
 import { logger } from "../lib/logger.js";
 import { notifySuccess, notifyError } from "../lib/notification.js";
 import { env } from "../config/env.js";
+import { loadCharacters } from "../config/character-loader.js";
 import type { GeneratedStory } from "../types/index.js";
 
 export async function runWorkflow(topic?: string): Promise<void> {
@@ -31,9 +33,20 @@ export async function runWorkflow(topic?: string): Promise<void> {
   logger.info({ provider: topicProvider.getName() }, "お題プロバイダーを選択");
 
   try {
+    // Step 0: キャラクター設定を読み込み
+    let characters = loadCharacters();
+    logger.info({ characterCount: characters.size, characterIds: Array.from(characters.keys()) }, "キャラクター設定を読み込みました");
+
     // Step 1: お題を取得
     const topicData = await topicProvider.getTopic();
     logger.info({ topicText: topicData.topicText }, "お題を取得しました");
+
+    // Step 1.5: キャラクター選択（autoモードの場合）
+    if (env.CHARACTER_SELECTION_MODE === "auto") {
+      logger.info("キャラクター自動選択モードで実行");
+      const selectionResult = await selectCharacters(topicData, characters);
+      characters = selectionResult.selectedCharacters;
+    }
 
     const outputDir = "./output";
     let story: GeneratedStory;
@@ -45,14 +58,14 @@ export async function runWorkflow(topic?: string): Promise<void> {
       logger.info("4コマ漫画モードで実行");
 
       // Step 2: 4コマ漫画プロットを生成
-      const mangaStory = await generateMangaStory(topicData);
+      const mangaStory = await generateMangaStory(topicData, characters);
       logger.info(
         { title: mangaStory.title, sessionId: mangaStory.sessionId },
         "4コマ漫画プロットを生成しました"
       );
 
       // Step 3: 4コマ漫画画像生成ワークフロー（リトライ込み）
-      const mangaResult = await executeMangaWorkflow(mangaStory, outputDir);
+      const mangaResult = await executeMangaWorkflow(mangaStory, outputDir, characters);
 
       // formatPost用にGeneratedStory形式に変換
       story = {
@@ -76,10 +89,13 @@ export async function runWorkflow(topic?: string): Promise<void> {
       logger.info("【4コマ構成】");
       for (const panel of mangaStory.panels) {
         const typeLabel = { ki: "起", sho: "承", ten: "転", ketsu: "結" }[panel.panelType];
+        const dialoguesText = panel.dialogues.length > 0
+          ? panel.dialogues.map(d => `${d.characterName}「${d.text}」`).join(" / ")
+          : "(セリフなし)";
         logger.info({
           コマ: `${panel.panelNumber}コマ目（${typeLabel}）`,
           内容: panel.description,
-          セリフ: panel.dialogue,
+          セリフ: dialoguesText,
         }, "コマ情報");
       }
       logger.info({ 挿絵: mangaStory.illustration.description }, "【挿絵】");
@@ -109,14 +125,14 @@ export async function runWorkflow(topic?: string): Promise<void> {
       logger.info("イラストモードで実行");
 
       // Step 2: 物語を生成
-      story = await generateStory(topicData);
+      story = await generateStory(topicData, characters);
       logger.info(
         { imagePrompt: story.imagePrompt, sessionId: story.sessionId },
         "物語を生成しました"
       );
 
       // Step 3: 画像生成ワークフロー（リトライ込み）
-      const result = await executeImageWorkflow(story, outputDir);
+      const result = await executeImageWorkflow(story, outputDir, characters);
 
       imageBuffer = result.image.data;
       imageMimeType = result.image.mimeType;
