@@ -103,7 +103,7 @@ export async function generateMangaImage(
 
     // 画像生成プロンプトを構築
     const prompt = buildMangaImagePrompt(story, characters, customImagePrompt);
-    logger.info({ imagePrompt: prompt }, "Geminiに渡す画像生成プロンプト");
+    logger.info("Geminiに渡す画像生成プロンプト:\n" + prompt);
 
     // APIキーがない場合はプロンプト出力のみで終了
     if (!env.GEMINI_API_KEY) {

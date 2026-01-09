@@ -55,7 +55,7 @@ export async function generateImage(
 
     // 画像生成プロンプトを構築
     const prompt = buildImagePrompt(imagePrompt, characters);
-    logger.info({ imagePrompt: prompt }, "Geminiに渡す画像生成プロンプト");
+    logger.info("Geminiに渡す画像生成プロンプト:\n" + prompt);
 
     // APIキーがない場合はプロンプト出力のみで終了
     if (!env.GEMINI_API_KEY) {
