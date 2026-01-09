@@ -221,7 +221,6 @@ export async function generateMangaStory(
         synopsis: result.synopsis,
         panels: result.panels,
         illustration: result.illustration,
-        imagePrompt: result.imagePrompt,
         shortText: result.shortText,
         sessionId,
       },

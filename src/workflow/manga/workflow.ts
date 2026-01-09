@@ -13,7 +13,7 @@ import {
   MangaQualityCheckError,
 } from "../../errors/index.js";
 import { env } from "../../config/env.js";
-import { logger } from "../../lib/logger.js";
+import { logger, getTimestamp } from "../../lib/logger.js";
 import { getAllImagePaths } from "../../config/character-loader.js";
 import { generateMangaImage } from "./image-generator.js";
 import {
@@ -117,7 +117,7 @@ async function saveImage(
 ): Promise<string> {
   await mkdir(outputDir, { recursive: true });
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const timestamp = getTimestamp();
   const ext = image.mimeType === "image/png" ? "png" : "jpg";
   const outputPath = join(outputDir, `manga-${timestamp}-attempt${attempt}.${ext}`);
 

@@ -45,7 +45,7 @@ export async function generateImage(
   customImagePrompt?: string
 ): Promise<GeneratedImage> {
   const imagePrompt = customImagePrompt ?? story.imagePrompt;
-  logger.info({ imagePrompt, characterCount: characters.size }, "画像生成を開始");
+  logger.info({ characterCount: characters.size }, "画像生成を開始");
 
   const provider = new GeminiProvider(env.GEMINI_API_KEY);
 
@@ -57,6 +57,7 @@ export async function generateImage(
 
     // 画像生成
     const prompt = buildImagePrompt(imagePrompt, characters);
+    logger.info({ imagePrompt: prompt }, "Geminiに渡す画像生成プロンプト");
     const image = await provider.generate({
       prompt,
       referenceImages,

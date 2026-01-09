@@ -106,6 +106,7 @@ export async function generateMangaImage(
 
     // 画像生成
     const prompt = buildMangaImagePrompt(story, characters, customImagePrompt);
+    logger.info({ imagePrompt: prompt }, "Geminiに渡す画像生成プロンプト");
     const image = await provider.generate({
       prompt,
       referenceImages,

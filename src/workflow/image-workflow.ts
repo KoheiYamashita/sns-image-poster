@@ -4,7 +4,7 @@ import type { GeneratedStory, GeneratedImage, QualityCheckResult } from "../type
 import type { CharacterMap } from "../types/character.js";
 import { ImageGenerationError } from "../errors/index.js";
 import { env } from "../config/env.js";
-import { logger } from "../lib/logger.js";
+import { logger, getTimestamp } from "../lib/logger.js";
 import { generateImage } from "./image-generator.js";
 import { checkQuality } from "./quality-checker.js";
 import { refineImagePrompt } from "./prompt-refiner.js";
@@ -24,7 +24,7 @@ async function saveImage(
 ): Promise<string> {
   await mkdir(outputDir, { recursive: true });
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const timestamp = getTimestamp();
   const ext = image.mimeType === "image/png" ? "png" : "jpg";
   const outputPath = join(outputDir, `generated-${timestamp}-attempt${attempt}.${ext}`);
 

@@ -112,7 +112,7 @@ export async function generateStory(
       throw new StoryGenerationError("セッションIDが取得できませんでした");
     }
 
-    logger.info({ story: result.story, shortStory: result.shortStory, imagePrompt: result.imagePrompt, sessionId }, "物語生成完了");
+    logger.info({ story: result.story, shortStory: result.shortStory, sessionId }, "物語生成完了");
 
     return {
       fullText: result.story,
