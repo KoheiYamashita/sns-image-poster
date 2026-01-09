@@ -53,7 +53,7 @@ const outputSchema = {
     },
     imagePrompt: {
       type: "string",
-      description: "4コマ漫画全体を1枚の画像として生成するための英語プロンプト",
+      description: "4コマ漫画全体を1枚の画像として生成するための日本語プロンプト",
     },
     shortText: { type: "string", description: "SNS投稿用テキスト（100文字以内）" },
   },
@@ -127,13 +127,13 @@ ${characterIds}
 3. panels: 4コマの配列（各コマにpanelNumber, panelType, description, dialogues）
    - dialoguesは複数キャラクターの会話配列（characterId, characterName, text）
 4. illustration: 右側の情景挿絵の説明（全キャラクターを含む）
-5. imagePrompt: 4コマ漫画のスタイル・雰囲気を指定する英語プロンプト（レイアウト指示、各コマの詳細、キャラクター外見は別途追加するため含めないこと。全体の雰囲気・トーンのみ）
+5. imagePrompt: 4コマ漫画のスタイル・雰囲気を指定する日本語プロンプト（レイアウト指示、各コマの詳細、キャラクター外見は別途追加するため含めないこと。全体の雰囲気・トーンのみ）
 6. shortText: SNS投稿用テキスト（100文字以内）
 
 【重要】
 - 各セリフは15文字以内で簡潔に
 - 1コマに複数キャラクターのセリフを入れることができます
-- imagePromptは英語で簡潔に（詳細なレイアウトやキャラクター情報は後から追加される）
+- imagePromptは日本語で簡潔に（詳細なレイアウトやキャラクター情報は後から追加される）
 
 【面白い4コマを作るコツ】
 1. オチから逆算: まず4コマ目の面白いオチを考え、そこに至る流れを逆算して設計する

@@ -10,16 +10,16 @@ function buildCharacterAppearances(characters: CharacterMap): string {
   const appearances: string[] = [];
   let index = 1;
   for (const char of characters.values()) {
-    const mainLabel = char.isMain ? " (MAIN CHARACTER)" : "";
-    appearances.push(`CHARACTER ${index}${mainLabel} - ${char.name}: ${char.appearancePrompt || "See reference images"}`);
+    const mainLabel = char.isMain ? "（主人公）" : "";
+    appearances.push(`キャラクター${index}${mainLabel} - ${char.name}: ${char.appearancePrompt || "参照画像を参照"}`);
     index++;
   }
   return appearances.join("\n");
 }
 
 function formatDialogues(dialogues: Array<{ characterName: string; text: string }>): string {
-  if (dialogues.length === 0) return "(no dialogue)";
-  return dialogues.map(d => `${d.characterName}: "${d.text}"`).join(" / ");
+  if (dialogues.length === 0) return "（セリフなし）";
+  return dialogues.map(d => `${d.characterName}:「${d.text}」`).join(" / ");
 }
 
 function buildMangaImagePrompt(story: MangaStory, characters: CharacterMap, customPrompt?: string): string {
@@ -28,60 +28,59 @@ function buildMangaImagePrompt(story: MangaStory, characters: CharacterMap, cust
   const characterCount = characters.size;
 
   // 4コマ漫画のレイアウト指示を強化（各コマでキャラクター特徴を繰り返し）
-  const layoutInstruction = `Generate a single image containing a 4-panel manga (yonkoma) layout.
+  const layoutInstruction = `4コマ漫画のレイアウトを含む1枚の画像を生成してください。
 
-IMPORTANT: Use the provided reference images as character design reference.
-ALL ${characterCount} characters must appear in EVERY panel and match the reference images exactly.
+重要: 提供された参照画像をキャラクターデザインの参考として使用してください。
+全${characterCount}名のキャラクターが全てのコマに登場し、参照画像と正確に一致させてください。
 
-=== ALL CHARACTERS (must appear in EVERY panel) ===
+=== 全キャラクター（全コマに登場必須） ===
 ${characterAppearances}
 
-LAYOUT STRUCTURE:
-- Top of the left side: Title "${story.title}" in decorative Japanese text
-- Left side (60%): 4 vertical panels stacked vertically
-- Right side (40%): A single illustration with ALL characters
-- Add panel borders/frames to clearly separate each panel
-- Include speech bubbles with Japanese text in each panel
+レイアウト構成:
+- 左側上部: タイトル「${story.title}」を装飾的な日本語で配置
+- 左側（60%）: 4つのコマを縦に並べる
+- 右側（40%）: 全キャラクターが登場する1枚イラスト
+- 各コマを明確に区切るコマ枠を追加
+- 各コマに日本語のセリフを含む吹き出しを配置
 
-=== PANEL 1 (起/Introduction) ===
-CHARACTERS: ALL ${characterCount} characters present
-ACTION: ${story.panels[0].description}
-DIALOGUES: ${formatDialogues(story.panels[0].dialogues)}
+=== コマ1（起） ===
+キャラクター: 全${characterCount}名が登場
+アクション: ${story.panels[0].description}
+セリフ: ${formatDialogues(story.panels[0].dialogues)}
 
-=== PANEL 2 (承/Development) ===
-CHARACTERS: ALL ${characterCount} characters present
-ACTION: ${story.panels[1].description}
-DIALOGUES: ${formatDialogues(story.panels[1].dialogues)}
+=== コマ2（承） ===
+キャラクター: 全${characterCount}名が登場
+アクション: ${story.panels[1].description}
+セリフ: ${formatDialogues(story.panels[1].dialogues)}
 
-=== PANEL 3 (転/Twist) ===
-CHARACTERS: ALL ${characterCount} characters present
-ACTION: ${story.panels[2].description}
-DIALOGUES: ${formatDialogues(story.panels[2].dialogues)}
+=== コマ3（転） ===
+キャラクター: 全${characterCount}名が登場
+アクション: ${story.panels[2].description}
+セリフ: ${formatDialogues(story.panels[2].dialogues)}
 
-=== PANEL 4 (結/Conclusion) ===
-CHARACTERS: ALL ${characterCount} characters present
-ACTION: ${story.panels[3].description}
-DIALOGUES: ${formatDialogues(story.panels[3].dialogues)}
+=== コマ4（結） ===
+キャラクター: 全${characterCount}名が登場
+アクション: ${story.panels[3].description}
+セリフ: ${formatDialogues(story.panels[3].dialogues)}
 
-=== RIGHT SIDE ILLUSTRATION ===
-CHARACTERS: ALL ${characterCount} characters together
-${characterAppearances}
-SCENE: ${story.illustration.description}
+=== 右側イラスト ===
+キャラクター: 全${characterCount}名が一緒に
+シーン: ${story.illustration.description}
 
-STYLE: 2D manga/anime style with clean linework and cel shading (even if reference images are 3D, draw in 2D manga style)
+スタイル: 2D漫画/アニメ風、クリーンな線画とセルシェーディング（参照画像が3Dでも2D漫画スタイルで描く）
 
-SPEECH BUBBLE RULES (in priority order):
-1. [MUST] Position speech bubbles near the speaking character, not fixed to one side
-2. [MUST] Each character's dialogue gets their own speech bubble
-3. [MUST] Japanese manga reads RIGHT to LEFT: if multiple bubbles in one panel, place the first dialogue on the RIGHT, second on the LEFT
-4. [SHOULD] Diagonal placement across panels for natural eye flow
-- Make speech bubble text clearly readable in Japanese
-- Use clean panel borders
+吹き出しのルール（優先順）:
+1. 【必須】吹き出しは話しているキャラクターの近くに配置（片側固定ではない）
+2. 【必須】各キャラクターのセリフは個別の吹き出しに
+3. 【必須】日本の漫画は右から左に読む: 1コマに複数の吹き出しがある場合、最初のセリフを右側、2番目を左側に配置
+4. 【推奨】自然な視線の流れのため、コマをまたいで斜めに配置
+- 吹き出し内の日本語テキストは読みやすく
+- コマ枠はクリーンに
 
-ACCESSORY PRIORITY RULE:
-- If any character wears accessories that cover facial features (sunglasses, masks, etc.), always show the accessory even during emotional expressions
-- Do NOT remove or make transparent any face-covering accessories to show expressions like "shocked eyes" or "pale face"
-- Express emotions through body language, pose, sweat drops, and other visible features instead
+アクセサリー優先ルール:
+- 顔を覆うアクセサリー（サングラス、マスクなど）を着用しているキャラクターは、感情表現時でも常にアクセサリーを表示
+- 「驚いた目」や「青ざめた顔」などの表現のために顔を覆うアクセサリーを外したり透明にしたりしないこと
+- 感情はボディランゲージ、ポーズ、汗のしずくなど他の視覚的要素で表現
 
 ${basePrompt}`;
 

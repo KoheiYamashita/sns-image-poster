@@ -12,7 +12,7 @@ const outputSchema = {
   properties: {
     story: { type: "string", description: "物語（フルバージョン）200-300文字程度" },
     shortStory: { type: "string", description: "物語（短縮版）100文字以内のSNS投稿用" },
-    imagePrompt: { type: "string", description: "物語のワンシーンを描くための英語プロンプト" },
+    imagePrompt: { type: "string", description: "物語のワンシーンを描くための日本語プロンプト" },
   },
   required: ["story", "shortStory", "imagePrompt"],
 } as const;
@@ -56,7 +56,7 @@ ${env.ILLUSTRATION_STYLE}
 以下の3つをJSON形式で出力してください：
 1. story: 物語（フルバージョン）200-300文字程度
 2. shortStory: 物語（短縮版）100文字以内のSNS投稿用
-3. imagePrompt: シーンの状況・構図・雰囲気を描写する英語プロンプト（キャラクターの外見情報は別途追加するため含めないこと。シーンの描写のみ）`;
+3. imagePrompt: シーンの状況・構図・雰囲気を描写する日本語プロンプト（キャラクターの外見情報は別途追加するため含めないこと。シーンの描写のみ）`;
 }
 
 function buildUserPrompt(topic: TopicSource): string {

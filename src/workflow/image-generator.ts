@@ -10,8 +10,8 @@ function buildCharacterAppearances(characters: CharacterMap): string {
   const appearances: string[] = [];
   let index = 1;
   for (const char of characters.values()) {
-    const mainLabel = char.isMain ? " (MAIN CHARACTER)" : "";
-    appearances.push(`CHARACTER ${index}${mainLabel} - ${char.name}: ${char.appearancePrompt || "See reference images"}`);
+    const mainLabel = char.isMain ? "（主人公）" : "";
+    appearances.push(`キャラクター${index}${mainLabel} - ${char.name}: ${char.appearancePrompt || "参照画像を参照"}`);
     index++;
   }
   return appearances.join("\n");
@@ -21,22 +21,22 @@ function buildImagePrompt(imagePrompt: string, characters: CharacterMap): string
   const characterAppearances = buildCharacterAppearances(characters);
   const characterCount = characters.size;
 
-  return `Generate an illustration based on the following prompt.
-Use the provided reference images as character design reference.
-ALL ${characterCount} characters must appear in the image.
+  return `以下のプロンプトに基づいてイラストを生成してください。
+提供された参照画像をキャラクターデザインの参考として使用してください。
+全${characterCount}名のキャラクターが画像に登場する必要があります。
 
-=== CHARACTERS (${characterCount} total) ===
+=== キャラクター（全${characterCount}名） ===
 ${characterAppearances}
 
-=== SCENE ===
+=== シーン ===
 ${imagePrompt}
 
-Style: ${env.ILLUSTRATION_STYLE}
+スタイル: ${env.ILLUSTRATION_STYLE}
 
-IMPORTANT:
-- All ${characterCount} characters must be clearly visible
-- Each character must match their reference images exactly
-- Show character interactions and spatial relationships`;
+重要事項:
+- 全${characterCount}名のキャラクターがはっきりと見えること
+- 各キャラクターは参照画像と正確に一致させること
+- キャラクター同士の関係性と空間的な配置を表現すること`;
 }
 
 export async function generateImage(
