@@ -23,6 +23,7 @@ const settingsSchema = z.object({
 
   // コンテンツモード
   CONTENT_MODE: z.enum(["illustration", "manga"]).default("illustration"),
+  MANGA_STYLE: z.enum(["normal", "yuru_chara"]).default("normal"),
 
   // キャラクター設定
   CHARACTERS_DIR: z.string().min(1, "CHARACTERS_DIRは必須です"),
@@ -87,6 +88,9 @@ function mapPresetToEnv(preset: PresetConfig): Record<string, string> {
 
   if (preset.contentMode !== undefined) {
     result["CONTENT_MODE"] = preset.contentMode;
+  }
+  if (preset.mangaStyle !== undefined) {
+    result["MANGA_STYLE"] = preset.mangaStyle;
   }
   if (preset.charactersDir !== undefined) {
     result["CHARACTERS_DIR"] = preset.charactersDir;

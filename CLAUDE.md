@@ -91,6 +91,10 @@ npm run no-post -- -t "お題"      # 画像生成まで（SNS投稿なし）
 5. **投稿テキスト作成** - 文字数制限、ハッシュタグ付与
 6. **SNS投稿** - Bundle Social経由で複数プラットフォームへ
 
+#### 漫画スタイル（`mangaStyle`）
+- `normal` - 通常の4コマ漫画（セリフあり、多様な表情）
+- `yuru_chara` - 脱力系ゆるキャラスタイル（セリフなし、無表情、シュールなオチ）
+
 ## 環境変数
 
 APIキーと認証情報のみ`.env`に設定。その他の設定はプリセットで管理。
@@ -150,6 +154,7 @@ npm run start -- -p tibi-kanon-illustration -p tibi-kanon-manga -t "猫の日"
 ### 指定可能な項目
 
 - `contentMode` - `illustration` / `manga`
+- `mangaStyle` - `normal`（デフォルト）/ `yuru_chara`（脱力系ゆるキャラ）
 - `charactersDir` - キャラクターディレクトリ
 - `characterIds` - 使用キャラクターID（配列）
 - `mainCharacterId` - 主軸キャラクターID

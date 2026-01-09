@@ -6,6 +6,7 @@ import type {
   MangaWorkflowResult,
   MangaQualityCheckResult,
   GeneratedImage,
+  MangaStyle,
 } from "../../types/index.js";
 import type { CharacterMap } from "../../types/character.js";
 import {
@@ -320,18 +321,19 @@ async function refineMangaPrompt(
 export async function executeMangaWorkflow(
   story: MangaStory,
   outputDir: string,
-  characters: CharacterMap
+  characters: CharacterMap,
+  mangaStyle: MangaStyle = "normal"
 ): Promise<MangaWorkflowResult | null> {
   const maxRetries = env.MAX_IMAGE_RETRY_COUNT;
   let currentPrompt = story.imagePrompt;
 
-  logger.info({ maxRetries, sessionId: story.sessionId, title: story.title, characterCount: characters.size }, "4コマ漫画ワークフロー開始");
+  logger.info({ maxRetries, sessionId: story.sessionId, title: story.title, characterCount: characters.size, mangaStyle }, "4コマ漫画ワークフロー開始");
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     logger.info({ attempt, maxRetries }, `4コマ漫画生成試行 ${attempt}/${maxRetries}`);
 
     // 1. 画像生成
-    const image = await generateMangaImage(story, characters, currentPrompt);
+    const image = await generateMangaImage(story, characters, mangaStyle, currentPrompt);
 
     // APIキーがない場合はnullが返される
     if (image === null) {

@@ -1,0 +1,16 @@
+{
+  "contentMode": "manga",
+  "mangaStyle": "yuru_chara",
+  "charactersDir": "./assets/characters",
+  "characterIds": ["tibi-kanon-2d", "kb-001"],
+  "mainCharacterId": "tibi-kanon-2d",
+  "characterSelectionMode": "auto",
+  "aspectRatio": "4:5",
+  "maxImageRetryCount": 3,
+  "postStyle": "漫画の内容をちび花音視点で面白可笑しく",
+  "postBaseHashtags": ["ちび花音", "AIMANGA", "今日は創作の日"],
+  "postTargetLength": 20,
+  "postMaxLength": 50,
+  "snsTargets": [],
+  "timezone": "Asia/Tokyo"
+}

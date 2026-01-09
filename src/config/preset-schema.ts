@@ -8,6 +8,7 @@ export const presetSchema = z
   .object({
     // コンテンツモード
     contentMode: z.enum(["illustration", "manga"]).optional(),
+    mangaStyle: z.enum(["normal", "yuru_chara"]).optional(),
 
     // キャラクター設定
     charactersDir: z.string().optional(),

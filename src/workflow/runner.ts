@@ -17,7 +17,7 @@ import { logger } from "../lib/logger.js";
 import { notifySuccess, notifyError } from "../lib/notification.js";
 import { env } from "../config/env.js";
 import { loadCharacters } from "../config/character-loader.js";
-import type { GeneratedStory } from "../types/index.js";
+import type { GeneratedStory, MangaStyle } from "../types/index.js";
 
 export async function runWorkflow(topic?: string): Promise<void> {
   logger.info("SNS Image Poster ワークフロー開始");
@@ -55,17 +55,18 @@ export async function runWorkflow(topic?: string): Promise<void> {
 
     if (env.CONTENT_MODE === "manga") {
       // 4コマ漫画モード
-      logger.info("4コマ漫画モードで実行");
+      const mangaStyle = env.MANGA_STYLE as MangaStyle;
+      logger.info({ mangaStyle }, "4コマ漫画モードで実行");
 
       // Step 2: 4コマ漫画プロットを生成
-      const mangaStory = await generateMangaStory(topicData, characters);
+      const mangaStory = await generateMangaStory(topicData, characters, mangaStyle);
       logger.info(
         { title: mangaStory.title, sessionId: mangaStory.sessionId },
         "4コマ漫画プロットを生成しました"
       );
 
       // Step 3: 4コマ漫画画像生成ワークフロー（リトライ込み）
-      const mangaResult = await executeMangaWorkflow(mangaStory, outputDir, characters);
+      const mangaResult = await executeMangaWorkflow(mangaStory, outputDir, characters, mangaStyle);
 
       // APIキーがない場合はnullが返される（プロンプトは既にログ出力済み）
       if (mangaResult === null) {

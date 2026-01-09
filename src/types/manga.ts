@@ -3,6 +3,9 @@ import type { CharacterDialogue } from "./character.js";
 /** コンテンツ生成モード */
 export type ContentMode = "illustration" | "manga";
 
+/** 4コマ漫画のスタイル */
+export type MangaStyle = "normal" | "yuru_chara";
+
 /** 4コマの各コマ */
 export interface MangaPanel {
   panelNumber: 1 | 2 | 3 | 4;

@@ -86,6 +86,7 @@ LOG_FILE_PATH=./logs/workflow.jsonl
 | 項目 | 説明 | デフォルト |
 |------|------|-----------|
 | `contentMode` | `illustration` または `manga` | `illustration` |
+| `mangaStyle` | 漫画スタイル: `normal`（通常）または `yuru_chara`（脱力系ゆるキャラ） | `normal` |
 | `charactersDir` | キャラクターディレクトリ | - |
 | `characterIds` | 使用キャラクターID（配列） | - |
 | `mainCharacterId` | 主軸キャラクターID | - |
@@ -259,6 +260,13 @@ npm run no-post -- -p my-preset -t "猫の日"
 8. 完了通知 ※オプション
    └─ Webhook送信 / ログ保存
 ```
+
+#### 漫画スタイル（`mangaStyle`）
+
+| スタイル | 説明 |
+|----------|------|
+| `normal` | 通常の4コマ漫画。セリフあり、多様な表情 |
+| `yuru_chara` | 脱力系ゆるキャラスタイル。セリフなしのサイレント漫画、無表情・脱力、シュールなオチ |
 
 ## プロジェクト構成
 

@@ -35,6 +35,7 @@ output/
 /assets/presets/*
 !/assets/presets/tibi-kanon-illustration.json
 !/assets/presets/tibi-kanon-manga.json
+!/assets/presets/tibi-kanon-manga-yuru.json
 !/assets/characters/
 /assets/characters/*
 !/assets/characters/tibi-kanon-2d/
