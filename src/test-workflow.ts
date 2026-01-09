@@ -25,6 +25,12 @@ async function main() {
   const outputDir = "./output";
   const result = await executeImageWorkflow(story, outputDir, characters);
 
+  // APIキーがない場合はnullが返される（プロンプトは既にログ出力済み）
+  if (result === null) {
+    logger.info("画像生成がスキップされました");
+    return;
+  }
+
   // Step 4: 投稿テキスト作成
   const post = await formatPost(story, topic);
   logger.info({ characterCount: post.characterCount }, "投稿テキストを作成しました");

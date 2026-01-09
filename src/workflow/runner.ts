@@ -67,6 +67,11 @@ export async function runWorkflow(topic?: string): Promise<void> {
       // Step 3: 4コマ漫画画像生成ワークフロー（リトライ込み）
       const mangaResult = await executeMangaWorkflow(mangaStory, outputDir, characters);
 
+      // APIキーがない場合はnullが返される（プロンプトは既にログ出力済み）
+      if (mangaResult === null) {
+        return;
+      }
+
       // formatPost用にGeneratedStory形式に変換
       story = {
         fullText: mangaStory.synopsis,
@@ -133,6 +138,11 @@ export async function runWorkflow(topic?: string): Promise<void> {
 
       // Step 3: 画像生成ワークフロー（リトライ込み）
       const result = await executeImageWorkflow(story, outputDir, characters);
+
+      // APIキーがない場合はnullが返される（プロンプトは既にログ出力済み）
+      if (result === null) {
+        return;
+      }
 
       imageBuffer = result.image.data;
       imageMimeType = result.image.mimeType;

@@ -37,7 +37,7 @@ export async function executeImageWorkflow(
   story: GeneratedStory,
   outputDir: string,
   characters: CharacterMap
-): Promise<ImageWorkflowResult> {
+): Promise<ImageWorkflowResult | null> {
   const maxRetries = env.MAX_IMAGE_RETRY_COUNT;
   let currentPrompt = story.imagePrompt;
   const promptHistory: string[] = [];
@@ -49,6 +49,12 @@ export async function executeImageWorkflow(
 
     // 1. 画像生成
     const image = await generateImage(story, characters, currentPrompt);
+
+    // APIキーがない場合はnullが返される
+    if (image === null) {
+      return null;
+    }
+
     promptHistory.push(image.prompt);
 
     // 2. 画像保存

@@ -43,11 +43,9 @@ export async function generateImage(
   story: GeneratedStory,
   characters: CharacterMap,
   customImagePrompt?: string
-): Promise<GeneratedImage> {
+): Promise<GeneratedImage | null> {
   const imagePrompt = customImagePrompt ?? story.imagePrompt;
   logger.info({ characterCount: characters.size }, "画像生成を開始");
-
-  const provider = new GeminiProvider(env.GEMINI_API_KEY);
 
   try {
     // 全キャラクターの参照画像を読み込み
@@ -55,9 +53,17 @@ export async function generateImage(
     const referenceImages = await loadReferenceImages(allImagePaths);
     logger.info({ count: referenceImages.length }, "参照画像を読み込み完了");
 
-    // 画像生成
+    // 画像生成プロンプトを構築
     const prompt = buildImagePrompt(imagePrompt, characters);
     logger.info({ imagePrompt: prompt }, "Geminiに渡す画像生成プロンプト");
+
+    // APIキーがない場合はプロンプト出力のみで終了
+    if (!env.GEMINI_API_KEY) {
+      logger.info("GEMINI_API_KEYが設定されていないため、画像生成をスキップします");
+      return null;
+    }
+
+    const provider = new GeminiProvider(env.GEMINI_API_KEY);
     const image = await provider.generate({
       prompt,
       referenceImages,

@@ -17,7 +17,9 @@
     "test:workflow": "tsx src/test-workflow.ts",
     "twitter:login": "tsx src/twitter-login.ts",
     "daemon:start": "npm run build && bash scripts/daemon-start.sh",
-    "daemon:stop": "bash scripts/daemon-stop.sh"
+    "daemon:stop": "bash scripts/daemon-stop.sh",
+    "prompt-only": "npm run build && TWITTER_API_IO_KEY= GEMINI_API_KEY= node dist/index.js",
+    "no-post": "npm run build && TWITTER_API_IO_KEY= BUNDLE_SOCIAL_API_KEY= BUNDLE_SOCIAL_TEAM_ID= node dist/index.js"
   },
   "engines": {
     "node": ">=22.0.0"

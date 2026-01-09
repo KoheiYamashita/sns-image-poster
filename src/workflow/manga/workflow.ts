@@ -321,7 +321,7 @@ export async function executeMangaWorkflow(
   story: MangaStory,
   outputDir: string,
   characters: CharacterMap
-): Promise<MangaWorkflowResult> {
+): Promise<MangaWorkflowResult | null> {
   const maxRetries = env.MAX_IMAGE_RETRY_COUNT;
   let currentPrompt = story.imagePrompt;
 
@@ -332,6 +332,11 @@ export async function executeMangaWorkflow(
 
     // 1. 画像生成
     const image = await generateMangaImage(story, characters, currentPrompt);
+
+    // APIキーがない場合はnullが返される
+    if (image === null) {
+      return null;
+    }
 
     // 2. 画像保存
     const outputPath = await saveImage(image, outputDir, attempt);

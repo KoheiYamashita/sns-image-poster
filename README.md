@@ -43,7 +43,7 @@ APIキーと認証情報のみ`.env`に設定します。その他の設定は�
 # TwitterAPI.io（お題取得用、任意）
 TWITTER_API_IO_KEY=your_api_key
 
-# Gemini API（画像生成用）
+# Gemini API（画像生成用、任意：未設定時はプロンプト出力のみ）
 GEMINI_API_KEY=your_gemini_api_key
 
 # bundle.social（SNS投稿用、任意）
@@ -172,6 +172,21 @@ npm run daemon:stop
 ```
 
 プリセットの`scheduleTimes`で指定した時刻に自動実行されます。
+
+### テスト実行（APIキー無効化モード）
+
+```bash
+# プロンプト出力のみ（画像生成なし）
+npm run prompt-only -- -t "猫の日"
+npm run prompt-only -- -p my-preset -t "猫の日"
+
+# 画像生成まで（SNS投稿なし）
+npm run no-post -- -t "猫の日"
+npm run no-post -- -p my-preset -t "猫の日"
+```
+
+- `prompt-only`: TWITTER_API_IO_KEY, GEMINI_API_KEYを無効化。物語・プロンプト生成のみ実行
+- `no-post`: TWITTER_API_IO_KEY, BUNDLE_SOCIAL_API_KEY, BUNDLE_SOCIAL_TEAM_IDを無効化。画像生成まで実行、投稿はスキップ
 
 ## ワークフロー
 

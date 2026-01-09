@@ -67,6 +67,10 @@ npm run test             # Vitest実行
 npm run test:topic       # お題取得テスト
 npm run test:story       # 物語生成テスト
 npm run test:workflow    # ワークフローテスト
+
+# テスト用（APIキー無効化）
+npm run prompt-only -- -t "お題"  # プロンプト出力のみ（画像生成なし）
+npm run no-post -- -t "お題"      # 画像生成まで（SNS投稿なし）
 ```
 
 ## ワークフロー
@@ -92,7 +96,7 @@ npm run test:workflow    # ワークフローテスト
 APIキーと認証情報のみ`.env`に設定。その他の設定はプリセットで管理。
 
 ### APIキー
-- `GEMINI_API_KEY` - Gemini APIキー（必須）
+- `GEMINI_API_KEY` - Gemini APIキー（任意：未設定時はプロンプト出力のみ）
 - `TWITTER_API_IO_KEY` - TwitterAPI.io APIキー（お題取得時）
 - `BUNDLE_SOCIAL_API_KEY` - Bundle Social APIキー（SNS投稿時）
 - `BUNDLE_SOCIAL_TEAM_ID` - Bundle Social チームID

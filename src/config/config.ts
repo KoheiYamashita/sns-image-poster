@@ -5,7 +5,7 @@ import { loadPreset } from "./preset.js";
 
 // .envから読み込む認証情報のスキーマ（プリセット有無に関わらず常に.envから）
 const credentialsSchema = z.object({
-  GEMINI_API_KEY: z.string().min(1, "Gemini APIキーは必須です"),
+  GEMINI_API_KEY: z.string().optional(),
   TWITTER_API_IO_KEY: z.string().optional(),
   BUNDLE_SOCIAL_API_KEY: z.string().optional(),
   BUNDLE_SOCIAL_TEAM_ID: z.string().optional(),
