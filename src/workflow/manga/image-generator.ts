@@ -28,8 +28,7 @@ function buildMangaImagePrompt(story: MangaStory, characters: CharacterMap, cust
   const characterCount = characters.size;
 
   // 4コマ漫画のレイアウト指示を強化（各コマでキャラクター特徴を繰り返し）
-  const layoutInstruction = `
-Generate a single image containing a 4-panel manga (yonkoma) layout.
+  const layoutInstruction = `Generate a single image containing a 4-panel manga (yonkoma) layout.
 
 IMPORTANT: Use the provided reference images as character design reference.
 ALL ${characterCount} characters must appear in EVERY panel and match the reference images exactly.
