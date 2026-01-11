@@ -18,6 +18,7 @@
 
 - Node.js >= 22.0.0
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) がインストール済みであること（Claude Agent SDK用）
+- [Anthropic API](https://console.anthropic.com/) APIキー（物語生成用）
 - [TwitterAPI.io](https://twitterapi.io/) APIキー（Xからお題を取得する場合）
 - [Gemini API](https://ai.google.dev/) APIキー
 - [bundle.social](https://bundle.social/) APIキー（SNS投稿機能を使用する場合）
@@ -40,6 +41,9 @@ cp .env.example .env
 APIキーと認証情報のみ`.env`に設定します。その他の設定はプリセットで管理します。
 
 ```bash
+# Anthropic API（物語生成用）
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
 # TwitterAPI.io（お題取得用、任意）
 TWITTER_API_IO_KEY=your_api_key
 
