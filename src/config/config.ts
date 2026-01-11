@@ -1,7 +1,14 @@
 import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
-import type { PresetConfig } from "./preset-schema.js";
+import type { DaySchedule, PresetConfig, ScheduleTimes } from "./preset-schema.js";
 import { loadPreset } from "./preset.js";
+
+/**
+ * スケジュールが既存形式（時刻のみの配列）かどうかを判定
+ */
+function isLegacyScheduleTimes(value: ScheduleTimes): value is string[] {
+  return value.length === 0 || typeof value[0] === "string";
+}
 
 // .envから読み込む認証情報のスキーマ（プリセット有無に関わらず常に.envから）
 const credentialsSchema = z.object({
@@ -70,10 +77,23 @@ const settingsSchema = z.object({
     ),
 
   // 定期実行設定
+  // 既存形式: カンマ区切りの時刻文字列（毎日実行）
   SCHEDULE_TIMES: z
     .string()
     .optional()
     .transform((val) => (val ? val.split(",").map((t) => t.trim()) : [])),
+  // 新形式: 曜日別スケジュールのJSON文字列
+  SCHEDULE_TIMES_JSON: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      try {
+        return JSON.parse(val) as DaySchedule[];
+      } catch {
+        return undefined;
+      }
+    }),
 
   // お題リストファイル
   TOPIC_LIST_FILE: z.string().optional(),
@@ -144,7 +164,13 @@ function mapPresetToEnv(preset: PresetConfig): Record<string, string> {
     result["TOPIC_LIST_FILE"] = preset.topicListFile;
   }
   if (preset.scheduleTimes !== undefined) {
-    result["SCHEDULE_TIMES"] = preset.scheduleTimes.join(",");
+    if (isLegacyScheduleTimes(preset.scheduleTimes)) {
+      // 既存形式: string[] → カンマ区切り文字列
+      result["SCHEDULE_TIMES"] = preset.scheduleTimes.join(",");
+    } else {
+      // 新形式: DaySchedule[] → JSON文字列
+      result["SCHEDULE_TIMES_JSON"] = JSON.stringify(preset.scheduleTimes);
+    }
   }
   if (preset.timezone !== undefined) {
     result["TZ"] = preset.timezone;

@@ -4,14 +4,80 @@ import { writeFileSync, unlinkSync, existsSync } from "node:fs";
 import { parseCliArgs } from "./cli/index.js";
 import { initConfig } from "./config/config.js";
 import { env } from "./config/env.js";
+import type { DayOfWeek, DaySchedule } from "./config/preset-schema.js";
 import { runWorkflow } from "./workflow/runner.js";
 import { logger } from "./lib/logger.js";
 
 const PID_FILE = ".daemon.pid";
 
-function timeToCron(time: string): string {
+// 曜日の日本語表記
+const DAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"] as const;
+
+/**
+ * 曜日を数字に変換（cronは0=日曜）
+ */
+function dayToNumber(day: DayOfWeek): number {
+  if (typeof day === "number") return day;
+
+  const dayMap = {
+    sun: 0,
+    mon: 1,
+    tue: 2,
+    wed: 3,
+    thu: 4,
+    fri: 5,
+    sat: 6,
+  } as const;
+  return dayMap[day as keyof typeof dayMap];
+}
+
+/**
+ * 時刻と曜日からcron式を生成
+ */
+function timeToCron(time: string, dayOfWeek?: DayOfWeek): string {
   const [hour, minute] = time.split(":");
-  return `${minute} ${hour} * * *`;
+  const day = dayOfWeek !== undefined ? dayToNumber(dayOfWeek) : "*";
+  return `${minute} ${hour} * * ${day}`;
+}
+
+interface ParsedSchedule {
+  time: string;
+  dayOfWeek?: DayOfWeek;
+}
+
+/**
+ * スケジュール設定をパースして登録用の配列に変換
+ */
+function parseScheduleTimes(
+  legacyTimes: string[],
+  daySchedules?: DaySchedule[]
+): ParsedSchedule[] {
+  const result: ParsedSchedule[] = [];
+
+  // 新形式（曜日別スケジュール）が指定されている場合
+  if (daySchedules && daySchedules.length > 0) {
+    for (const schedule of daySchedules) {
+      for (const time of schedule.times) {
+        result.push({ time, dayOfWeek: schedule.day });
+      }
+    }
+    return result;
+  }
+
+  // 既存形式（時刻のみ）の場合
+  for (const time of legacyTimes) {
+    result.push({ time });
+  }
+  return result;
+}
+
+/**
+ * 曜日ラベルを取得
+ */
+function getDayLabel(dayOfWeek?: DayOfWeek): string {
+  if (dayOfWeek === undefined) return "毎日";
+  const num = dayToNumber(dayOfWeek);
+  return `${DAY_LABELS[num]}曜`;
 }
 
 function savePidFile(): void {
@@ -83,7 +149,7 @@ async function executeScheduledWorkflow(preset?: string): Promise<void> {
 
 interface PresetSchedule {
   preset: string;
-  scheduleTimes: string[];
+  schedules: ParsedSchedule[];
   timezone: string;
 }
 
@@ -101,63 +167,70 @@ function main(): void {
   if (presets.length === 0) {
     // プリセットなし: 従来通り
     initConfig(undefined);
-    const scheduleTimes = env.SCHEDULE_TIMES;
+    const parsedSchedules = parseScheduleTimes(
+      env.SCHEDULE_TIMES,
+      env.SCHEDULE_TIMES_JSON
+    );
     const timezone = env.TZ;
 
-    if (scheduleTimes.length === 0) {
+    if (parsedSchedules.length === 0) {
       logger.error("SCHEDULE_TIMESが設定されていません");
       console.error("エラー: SCHEDULE_TIMESを設定してください（例: SCHEDULE_TIMES=09:00,12:00,18:00）");
       removePidFile();
       process.exit(1);
     }
 
-    for (const time of scheduleTimes) {
-      const cronExpression = timeToCron(time);
+    for (const { time, dayOfWeek } of parsedSchedules) {
+      const cronExpression = timeToCron(time, dayOfWeek);
       if (!cron.validate(cronExpression)) {
-        logger.error({ time, cronExpression }, "無効な時刻形式です");
+        logger.error({ time, dayOfWeek, cronExpression }, "無効な時刻形式です");
         continue;
       }
       cron.schedule(cronExpression, () => executeScheduledWorkflow(), { timezone });
-      logger.info({ time, cronExpression, timezone }, "スケジュールを登録しました");
+      const dayLabel = getDayLabel(dayOfWeek);
+      logger.info({ time, dayOfWeek, cronExpression, timezone }, `スケジュールを登録しました (${dayLabel})`);
     }
 
     console.log(`\nデーモンを起動しました (PID: ${process.pid})`);
     console.log(`タイムゾーン: ${timezone}`);
-    console.log(`スケジュール時刻: ${scheduleTimes.join(", ")}`);
+    console.log("スケジュール:");
+    for (const { time, dayOfWeek } of parsedSchedules) {
+      console.log(`  ${getDayLabel(dayOfWeek)}: ${time}`);
+    }
     console.log("\n停止するには: npm run daemon:stop");
 
-    logger.info({ pid: process.pid, scheduleTimes, timezone }, "デーモンを起動しました");
+    logger.info({ pid: process.pid, parsedSchedules, timezone }, "デーモンを起動しました");
   } else {
     // プリセットあり: 各プリセットのスケジュールを個別に登録
-    const schedules: PresetSchedule[] = [];
+    const presetSchedules: PresetSchedule[] = [];
 
     for (const preset of presets) {
       initConfig(preset);
-      schedules.push({
+      presetSchedules.push({
         preset,
-        scheduleTimes: [...env.SCHEDULE_TIMES],
+        schedules: parseScheduleTimes(env.SCHEDULE_TIMES, env.SCHEDULE_TIMES_JSON),
         timezone: env.TZ,
       });
     }
 
     // スケジュールが全て空かチェック
-    if (schedules.every((s) => s.scheduleTimes.length === 0)) {
+    if (presetSchedules.every((s) => s.schedules.length === 0)) {
       logger.error("全てのプリセットでSCHEDULE_TIMESが設定されていません");
       console.error("エラー: SCHEDULE_TIMESを設定してください（例: scheduleTimes: [\"09:00\"]）");
       removePidFile();
       process.exit(1);
     }
 
-    for (const { preset, scheduleTimes, timezone } of schedules) {
-      if (scheduleTimes.length === 0) {
+    for (const { preset, schedules, timezone } of presetSchedules) {
+      if (schedules.length === 0) {
         logger.warn({ preset }, "SCHEDULE_TIMESが設定されていないためスキップします");
         continue;
       }
 
-      for (const time of scheduleTimes) {
-        const cronExpression = timeToCron(time);
+      for (const { time, dayOfWeek } of schedules) {
+        const cronExpression = timeToCron(time, dayOfWeek);
         if (!cron.validate(cronExpression)) {
-          logger.error({ time, cronExpression, preset }, "無効な時刻形式です");
+          logger.error({ time, dayOfWeek, cronExpression, preset }, "無効な時刻形式です");
           continue;
         }
         cron.schedule(
@@ -165,20 +238,24 @@ function main(): void {
           () => executeScheduledWorkflow(preset),
           { timezone }
         );
-        logger.info({ time, cronExpression, timezone, preset }, "スケジュールを登録しました");
+        const dayLabel = getDayLabel(dayOfWeek);
+        logger.info({ time, dayOfWeek, cronExpression, timezone, preset }, `スケジュールを登録しました (${dayLabel})`);
       }
     }
 
     console.log(`\nデーモンを起動しました (PID: ${process.pid})`);
     console.log("スケジュール:");
-    for (const { preset, scheduleTimes, timezone } of schedules) {
-      if (scheduleTimes.length > 0) {
-        console.log(`  ${preset}: ${scheduleTimes.join(", ")} (${timezone})`);
+    for (const { preset, schedules, timezone } of presetSchedules) {
+      if (schedules.length > 0) {
+        const scheduleStr = schedules
+          .map(({ time, dayOfWeek }) => `${getDayLabel(dayOfWeek)} ${time}`)
+          .join(", ");
+        console.log(`  ${preset}: ${scheduleStr} (${timezone})`);
       }
     }
     console.log("\n停止するには: npm run daemon:stop");
 
-    logger.info({ pid: process.pid, schedules }, "デーモンを起動しました");
+    logger.info({ pid: process.pid, presetSchedules }, "デーモンを起動しました");
   }
 }
 

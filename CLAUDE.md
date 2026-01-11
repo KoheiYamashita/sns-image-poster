@@ -172,8 +172,34 @@ npm run start -- -p tibi-kanon-illustration -p tibi-kanon-manga -t "猫の日"
 - `topicSearchKeyword` - 検索キーワード
 - `topicPattern` - お題抽出パターン
 - `topicListFile` - お題リストファイル
-- `scheduleTimes` - 定期実行時刻（配列）
+- `scheduleTimes` - 定期実行スケジュール（下記参照）
 - `timezone` - タイムゾーン
+
+### 定期実行スケジュール（`scheduleTimes`）
+
+2つの形式をサポート：
+
+#### 既存形式（毎日実行）
+```json
+{
+  "scheduleTimes": ["08:00", "18:00"]
+}
+```
+
+#### 曜日別形式
+```json
+{
+  "scheduleTimes": [
+    { "day": "mon", "times": ["08:00", "18:00"] },
+    { "day": "sat", "times": ["10:00", "15:00", "20:00"] },
+    { "day": "sun", "times": ["10:00", "20:00"] }
+  ]
+}
+```
+
+曜日の指定方法：
+- 英語3文字: `sun`, `mon`, `tue`, `wed`, `thu`, `fri`, `sat`
+- 数字: `0`-`6`（0=日曜）
 
 ## 設計方針
 
