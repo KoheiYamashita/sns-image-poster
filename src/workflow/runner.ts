@@ -6,6 +6,8 @@ import {
 } from "../providers/topic/index.js";
 import {
   BundleSocialProvider,
+  UploadPostProvider,
+  type SNSPostProvider,
   type SupportedPlatform,
 } from "../providers/sns-post/index.js";
 import { generateStory } from "./story-generator.js";
@@ -20,6 +22,33 @@ import { runScheduleOptimization } from "./schedule-optimizer/index.js";
 import { env } from "../config/env.js";
 import { loadCharacters } from "../config/character-loader.js";
 import type { GeneratedStory, MangaStyle } from "../types/index.js";
+
+/**
+ * SNSプロバイダーを作成
+ */
+function createSNSProvider(): SNSPostProvider {
+  if (env.SNS_PROVIDER === "upload-post") {
+    return new UploadPostProvider();
+  }
+  return new BundleSocialProvider();
+}
+
+/**
+ * SNS投稿が可能かどうかを判定
+ */
+function canPostToSNS(): boolean {
+  if (env.SNS_TARGETS.length === 0) {
+    return false;
+  }
+  if (env.SNS_PROVIDER === "upload-post") {
+    const hasApiKey = !!env.UPLOAD_POST_API_KEY;
+    const hasUserId =
+      !!env.UPLOAD_POST_USER_ID ||
+      Object.keys(env.UPLOAD_POST_USER_IDS).length > 0;
+    return hasApiKey && hasUserId;
+  }
+  return !!env.BUNDLE_SOCIAL_API_KEY && !!env.BUNDLE_SOCIAL_TEAM_ID;
+}
 
 export async function runWorkflow(topic?: string): Promise<void> {
   logger.info("SNS Image Poster ワークフロー開始");
@@ -198,10 +227,10 @@ export async function runWorkflow(topic?: string): Promise<void> {
 
     // Step 5: SNS投稿（オプション）
     let posted = false;
-    if (env.BUNDLE_SOCIAL_API_KEY && env.SNS_TARGETS.length > 0) {
-      logger.info({ targets: env.SNS_TARGETS }, "SNS投稿を開始");
+    if (canPostToSNS()) {
+      logger.info({ targets: env.SNS_TARGETS, provider: env.SNS_PROVIDER }, "SNS投稿を開始");
 
-      const snsProvider = new BundleSocialProvider();
+      const snsProvider = createSNSProvider();
 
       const snsResults = await snsProvider.post(
         {
@@ -255,7 +284,10 @@ export async function runWorkflow(topic?: string): Promise<void> {
         }
       }
     } else {
-      logger.info("SNS投稿はスキップされました（API KEYまたは投稿先が未設定）");
+      logger.info(
+        { provider: env.SNS_PROVIDER },
+        "SNS投稿はスキップされました（API KEYまたは投稿先が未設定）"
+      );
     }
 
     // FileListTopicProviderの場合、使用済みお題をファイルから削除

@@ -16,6 +16,8 @@ const credentialsSchema = z.object({
   TWITTER_API_IO_KEY: z.string().optional(),
   BUNDLE_SOCIAL_API_KEY: z.string().optional(),
   BUNDLE_SOCIAL_TEAM_ID: z.string().optional(),
+  UPLOAD_POST_API_KEY: z.string().optional(),
+  UPLOAD_POST_USER_ID: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   WEBHOOK_URL: z.string().url().optional(),
   LOG_FILE_PATH: z.string().optional(),
@@ -77,6 +79,20 @@ const settingsSchema = z.object({
       val ? val.split(",").map((s) => s.trim().toUpperCase()) : []
     ),
 
+  // SNSプロバイダー設定
+  SNS_PROVIDER: z.enum(["bundle-social", "upload-post"]).default("bundle-social"),
+  UPLOAD_POST_USER_IDS: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return {} as Record<string, string>;
+      try {
+        return JSON.parse(val) as Record<string, string>;
+      } catch {
+        return {} as Record<string, string>;
+      }
+    }),
+
   // 定期実行設定
   // 既存形式: カンマ区切りの時刻文字列（毎日実行）
   SCHEDULE_TIMES: z
@@ -126,6 +142,7 @@ function mapPresetToEnv(preset: PresetConfig): Record<string, string> {
     ["illustrationStyle", "ILLUSTRATION_STYLE"],
     ["aspectRatio", "ASPECT_RATIO"],
     ["postStyle", "POST_STYLE"],
+    ["snsProvider", "SNS_PROVIDER"],
     ["topicSourceAccount", "X_TOPIC_SOURCE_ACCOUNT"],
     ["topicSearchKeyword", "TOPIC_SEARCH_KEYWORD"],
     ["topicPattern", "TOPIC_PATTERN"],
@@ -181,6 +198,11 @@ function mapPresetToEnv(preset: PresetConfig): Record<string, string> {
     } else {
       result["SCHEDULE_TIMES_JSON"] = JSON.stringify(preset.scheduleTimes);
     }
+  }
+
+  // Upload-PostのユーザーID（プラットフォームごと）
+  if (preset.uploadPostUserIds !== undefined) {
+    result["UPLOAD_POST_USER_IDS"] = JSON.stringify(preset.uploadPostUserIds);
   }
 
   return result;

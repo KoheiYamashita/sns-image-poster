@@ -55,6 +55,8 @@ export const presetSchema = z
     // SNS設定
     snsTargets: z.array(z.string()).optional(),
     quoteUrlTargets: z.array(z.string()).optional(),
+    snsProvider: z.enum(["bundle-social", "upload-post"]).optional(),
+    uploadPostUserIds: z.record(z.string(), z.string()).optional(), // {"TWITTER": "user-id", ...}
 
     // お題取得設定
     topicSourceAccount: z.string().optional(),
