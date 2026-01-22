@@ -15,6 +15,8 @@ import { selectCharacters } from "./character-selector.js";
 import { formatPost } from "./post-formatter.js";
 import { logger } from "../lib/logger.js";
 import { notifySuccess, notifyError } from "../lib/notification.js";
+import { savePostHistory } from "../lib/post-history.js";
+import { runScheduleOptimization } from "./schedule-optimizer/index.js";
 import { env } from "../config/env.js";
 import { loadCharacters } from "../config/character-loader.js";
 import type { GeneratedStory, MangaStyle } from "../types/index.js";
@@ -218,6 +220,38 @@ export async function runWorkflow(topic?: string): Promise<void> {
           posted = true;
         } else {
           logger.error({ platform: r.platform, error: r.error }, "❌ 投稿失敗");
+        }
+      }
+
+      // 自動投稿時間最適化が有効な場合、投稿履歴を保存し分析を実行
+      if (env.AUTO_SCHEDULE_OPTIMIZATION) {
+        const successfulPosts = snsResults
+          .filter((r) => r.success && r.postId)
+          .map((r) => ({
+            platform: r.platform,
+            postId: r.postId!,
+            postUrl: r.postUrl,
+          }));
+
+        if (successfulPosts.length > 0) {
+          const presetName = env.PRESET_NAME || "default";
+          savePostHistory(presetName, {
+            timestamp: new Date().toISOString(),
+            topic: topicData.topicText,
+            platforms: successfulPosts,
+          });
+
+          // 分析ワークフローを実行（7日以上前の未分析投稿があれば）
+          try {
+            await runScheduleOptimization(presetName, {
+              currentSchedule: env.SCHEDULE_TIMES,
+              dryRun: false,
+              backupOriginal: true,
+            });
+          } catch (error) {
+            logger.error({ error }, "投稿時間最適化でエラーが発生しました");
+            // 最適化エラーは投稿自体の成功には影響しない
+          }
         }
       }
     } else {

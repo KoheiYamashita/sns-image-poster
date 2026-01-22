@@ -16,6 +16,7 @@ const credentialsSchema = z.object({
   TWITTER_API_IO_KEY: z.string().optional(),
   BUNDLE_SOCIAL_API_KEY: z.string().optional(),
   BUNDLE_SOCIAL_TEAM_ID: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
   WEBHOOK_URL: z.string().url().optional(),
   LOG_FILE_PATH: z.string().optional(),
 });
@@ -97,6 +98,15 @@ const settingsSchema = z.object({
 
   // お題リストファイル
   TOPIC_LIST_FILE: z.string().optional(),
+
+  // 自動投稿時間最適化
+  AUTO_SCHEDULE_OPTIMIZATION: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
+
+  // プリセット名（ランタイムで設定）
+  PRESET_NAME: z.string().optional(),
 });
 
 /**
@@ -106,74 +116,71 @@ const settingsSchema = z.object({
 function mapPresetToEnv(preset: PresetConfig): Record<string, string> {
   const result: Record<string, string> = {};
 
-  if (preset.contentMode !== undefined) {
-    result["CONTENT_MODE"] = preset.contentMode;
-  }
-  if (preset.mangaStyle !== undefined) {
-    result["MANGA_STYLE"] = preset.mangaStyle;
-  }
-  if (preset.charactersDir !== undefined) {
-    result["CHARACTERS_DIR"] = preset.charactersDir;
-  }
-  if (preset.characterIds !== undefined) {
-    result["CHARACTER_IDS"] = preset.characterIds.join(",");
-  }
-  if (preset.mainCharacterId !== undefined) {
-    result["MAIN_CHARACTER_ID"] = preset.mainCharacterId;
-  }
-  if (preset.characterSelectionMode !== undefined) {
-    result["CHARACTER_SELECTION_MODE"] = preset.characterSelectionMode;
-  }
-  if (preset.illustrationStyle !== undefined) {
-    result["ILLUSTRATION_STYLE"] = preset.illustrationStyle;
-  }
-  if (preset.aspectRatio !== undefined) {
-    result["ASPECT_RATIO"] = preset.aspectRatio;
-  }
-  if (preset.maxImageRetryCount !== undefined) {
-    result["MAX_IMAGE_RETRY_COUNT"] = String(preset.maxImageRetryCount);
-  }
-  if (preset.postStyle !== undefined) {
-    result["POST_STYLE"] = preset.postStyle;
-  }
-  if (preset.postBaseHashtags !== undefined) {
-    result["POST_BASE_HASHTAGS"] = preset.postBaseHashtags.join(",");
-  }
-  if (preset.postTargetLength !== undefined) {
-    result["POST_TARGET_LENGTH"] = String(preset.postTargetLength);
-  }
-  if (preset.postMaxLength !== undefined) {
-    result["POST_MAX_LENGTH"] = String(preset.postMaxLength);
-  }
-  if (preset.snsTargets !== undefined) {
-    result["SNS_TARGETS"] = preset.snsTargets.join(",");
-  }
-  if (preset.quoteUrlTargets !== undefined) {
-    result["QUOTE_URL_TARGETS"] = preset.quoteUrlTargets.join(",");
-  }
-  if (preset.topicSourceAccount !== undefined) {
-    result["X_TOPIC_SOURCE_ACCOUNT"] = preset.topicSourceAccount;
-  }
-  if (preset.topicSearchKeyword !== undefined) {
-    result["TOPIC_SEARCH_KEYWORD"] = preset.topicSearchKeyword;
-  }
-  if (preset.topicPattern !== undefined) {
-    result["TOPIC_PATTERN"] = preset.topicPattern;
-  }
-  if (preset.topicListFile !== undefined) {
-    result["TOPIC_LIST_FILE"] = preset.topicListFile;
-  }
-  if (preset.scheduleTimes !== undefined) {
-    if (isLegacyScheduleTimes(preset.scheduleTimes)) {
-      // 既存形式: string[] → カンマ区切り文字列
-      result["SCHEDULE_TIMES"] = preset.scheduleTimes.join(",");
-    } else {
-      // 新形式: DaySchedule[] → JSON文字列
-      result["SCHEDULE_TIMES_JSON"] = JSON.stringify(preset.scheduleTimes);
+  // 単純な文字列マッピング
+  const stringMappings: [keyof PresetConfig, string][] = [
+    ["contentMode", "CONTENT_MODE"],
+    ["mangaStyle", "MANGA_STYLE"],
+    ["charactersDir", "CHARACTERS_DIR"],
+    ["mainCharacterId", "MAIN_CHARACTER_ID"],
+    ["characterSelectionMode", "CHARACTER_SELECTION_MODE"],
+    ["illustrationStyle", "ILLUSTRATION_STYLE"],
+    ["aspectRatio", "ASPECT_RATIO"],
+    ["postStyle", "POST_STYLE"],
+    ["topicSourceAccount", "X_TOPIC_SOURCE_ACCOUNT"],
+    ["topicSearchKeyword", "TOPIC_SEARCH_KEYWORD"],
+    ["topicPattern", "TOPIC_PATTERN"],
+    ["topicListFile", "TOPIC_LIST_FILE"],
+    ["timezone", "TZ"],
+  ];
+
+  for (const [presetKey, envKey] of stringMappings) {
+    const value = preset[presetKey];
+    if (value !== undefined) {
+      result[envKey] = String(value);
     }
   }
-  if (preset.timezone !== undefined) {
-    result["TZ"] = preset.timezone;
+
+  // 数値マッピング
+  const numberMappings: [keyof PresetConfig, string][] = [
+    ["maxImageRetryCount", "MAX_IMAGE_RETRY_COUNT"],
+    ["postTargetLength", "POST_TARGET_LENGTH"],
+    ["postMaxLength", "POST_MAX_LENGTH"],
+  ];
+
+  for (const [presetKey, envKey] of numberMappings) {
+    const value = preset[presetKey];
+    if (value !== undefined) {
+      result[envKey] = String(value);
+    }
+  }
+
+  // 配列マッピング（カンマ区切り）
+  const arrayMappings: [keyof PresetConfig, string][] = [
+    ["characterIds", "CHARACTER_IDS"],
+    ["postBaseHashtags", "POST_BASE_HASHTAGS"],
+    ["snsTargets", "SNS_TARGETS"],
+    ["quoteUrlTargets", "QUOTE_URL_TARGETS"],
+  ];
+
+  for (const [presetKey, envKey] of arrayMappings) {
+    const value = preset[presetKey] as string[] | undefined;
+    if (value !== undefined) {
+      result[envKey] = value.join(",");
+    }
+  }
+
+  // ブール値マッピング
+  if (preset.autoScheduleOptimization !== undefined) {
+    result["AUTO_SCHEDULE_OPTIMIZATION"] = String(preset.autoScheduleOptimization);
+  }
+
+  // スケジュール設定（既存形式と新形式の両方をサポート）
+  if (preset.scheduleTimes !== undefined) {
+    if (isLegacyScheduleTimes(preset.scheduleTimes)) {
+      result["SCHEDULE_TIMES"] = preset.scheduleTimes.join(",");
+    } else {
+      result["SCHEDULE_TIMES_JSON"] = JSON.stringify(preset.scheduleTimes);
+    }
   }
 
   return result;
@@ -190,6 +197,7 @@ export function loadConfig(presetName?: string) {
   // 認証情報は常に.envから
   const credentialsResult = credentialsSchema.safeParse(process.env);
   if (!credentialsResult.success) {
+    // NOTE: ここではconsole.errorを使用（loggerは設定読み込み後に初期化されるため）
     console.error("認証情報の検証に失敗しました:");
     for (const error of credentialsResult.error.errors) {
       console.error(`  - ${error.path.join(".")}: ${error.message}`);
@@ -203,7 +211,10 @@ export function loadConfig(presetName?: string) {
   if (presetName) {
     // プリセットモード: プリセット値のみ使用（.envの動作設定は無視）
     const preset = loadPreset(presetName);
-    settingsSource = mapPresetToEnv(preset);
+    settingsSource = {
+      ...mapPresetToEnv(preset),
+      PRESET_NAME: presetName,
+    };
   } else {
     // 通常モード: .envから読み込み
     settingsSource = process.env as Record<string, string | undefined>;
@@ -212,6 +223,7 @@ export function loadConfig(presetName?: string) {
   // 動作設定のバリデーション
   const settingsResult = settingsSchema.safeParse(settingsSource);
   if (!settingsResult.success) {
+    // NOTE: ここではconsole.errorを使用（loggerは設定読み込み後に初期化されるため）
     console.error("設定の検証に失敗しました:");
     for (const error of settingsResult.error.errors) {
       console.error(`  - ${error.path.join(".")}: ${error.message}`);

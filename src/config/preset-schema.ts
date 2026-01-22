@@ -65,6 +65,9 @@ export const presetSchema = z
     // 定期実行設定
     scheduleTimes: scheduleTimesSchema.optional(),
 
+    // 自動投稿時間最適化
+    autoScheduleOptimization: z.boolean().optional(),
+
     // その他
     timezone: z.string().optional(),
   })

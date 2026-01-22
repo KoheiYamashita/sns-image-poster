@@ -142,9 +142,8 @@ export class BundleSocialProvider implements SNSPostProvider {
       data[platform] = platformData;
     }
 
+    // 即時投稿（現在時刻を指定することでAPIが即座に投稿処理を実行）
     const postDate = new Date();
-    // 1分後に投稿（即時投稿の代わり）
-    postDate.setMinutes(postDate.getMinutes() + 1);
 
     const requestBody = {
       teamId: this.teamId,

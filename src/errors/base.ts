@@ -103,3 +103,9 @@ export class ConfigError extends Error {
 
 export class PresetLoadError extends ConfigError {}
 export class PresetValidationError extends ConfigError {}
+
+// アナリティクス関連エラー
+export class AnalyticsFetchError extends ConfigError {}
+
+// スケジュール最適化エラー
+export class ScheduleOptimizationError extends ConfigError {}
