@@ -59,7 +59,9 @@ export const presetSchema = z
     uploadPostUserIds: z.record(z.string(), z.string()).optional(), // {"TWITTER": "user-id", ...}
 
     // お題取得設定
+    topicProvider: z.enum(["twitter-api-io", "x-api"]).optional(),
     topicSourceAccount: z.string().optional(),
+    topicSourceUserId: z.string().optional(),
     topicSearchKeyword: z.string().optional(),
     topicPattern: z.string().optional(),
     topicListFile: z.string().optional(),

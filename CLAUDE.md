@@ -7,8 +7,8 @@
 - **Runtime**: Node.js 22+
 - **Language**: TypeScript (ESM)
 - **AI**: Gemini API (物語・画像生成、品質チェック)
-- **SNS投稿**: Bundle Social API
-- **お題取得**: TwitterAPI.io
+- **SNS投稿**: Bundle Social API / Upload-Post API
+- **お題取得**: TwitterAPI.io / X API v2（ユーザータイムライン）
 - **ログ**: Pino
 - **バリデーション**: Zod
 
@@ -24,7 +24,7 @@ src/
 ├── lib/              # ユーティリティ
 ├── providers/        # 外部サービス連携
 │   ├── image-generation/  # 画像生成（Gemini）
-│   ├── sns-post/          # Bundle Social
+│   ├── sns-post/          # Bundle Social / Upload-Post
 │   └── topic/             # お題取得
 ├── types/            # 型定義
 └── workflow/         # ワークフロー処理
@@ -81,7 +81,7 @@ npm run no-post -- -t "お題"      # 画像生成まで（SNS投稿なし）
 3. **画像生成** - Gemini Imagenでイラスト生成
 4. **品質チェック** - キャラクター一致、物語整合性を評価
 5. **投稿テキスト作成** - 文字数制限、ハッシュタグ付与
-6. **SNS投稿** - Bundle Social経由で複数プラットフォームへ
+6. **SNS投稿** - Bundle Social / Upload-Post経由で複数プラットフォームへ
 
 ### 4コマ漫画モード（`contentMode: "manga"`）
 1. **お題取得** - Twitter / ファイル / 手動指定
@@ -89,7 +89,7 @@ npm run no-post -- -t "お題"      # 画像生成まで（SNS投稿なし）
 3. **画像生成** - 4コマ+挿絵レイアウトの画像を生成
 4. **品質チェック** - キャラクター一貫性、セリフ可読性、レイアウト等を評価
 5. **投稿テキスト作成** - 文字数制限、ハッシュタグ付与
-6. **SNS投稿** - Bundle Social経由で複数プラットフォームへ
+6. **SNS投稿** - Bundle Social / Upload-Post経由で複数プラットフォームへ
 
 #### 漫画スタイル（`mangaStyle`）
 - `normal` - 通常の4コマ漫画（セリフあり、多様な表情）
@@ -101,9 +101,12 @@ APIキーと認証情報のみ`.env`に設定。その他の設定はプリセ�
 
 ### APIキー
 - `GEMINI_API_KEY` - Gemini APIキー（任意：未設定時はプロンプト出力のみ）
-- `TWITTER_API_IO_KEY` - TwitterAPI.io APIキー（お題取得時）
-- `BUNDLE_SOCIAL_API_KEY` - Bundle Social APIキー（SNS投稿時）
+- `TWITTER_API_IO_KEY` - TwitterAPI.io APIキー（`topicProvider: "twitter-api-io"` 時）
+- `X_API_BEARER_TOKEN` - X API v2 Bearer Token（`topicProvider: "x-api"` 時）
+- `BUNDLE_SOCIAL_API_KEY` - Bundle Social APIキー（`snsProvider: "bundle-social"` 時）
 - `BUNDLE_SOCIAL_TEAM_ID` - Bundle Social チームID
+- `UPLOAD_POST_API_KEY` - Upload-Post APIキー（`snsProvider: "upload-post"` 時）
+- `UPLOAD_POST_USER_ID` - Upload-Post ユーザーID
 
 ### 通知設定（任意）
 - `WEBHOOK_URL` - 成功/エラー時のWebhook送信先
@@ -168,8 +171,12 @@ npm run start -- -p tibi-kanon-illustration -p tibi-kanon-manga -t "猫の日"
 - `postMaxLength` - 最大文字数
 - `snsTargets` - 投稿先SNS（配列）
 - `quoteUrlTargets` - 引用URL付与SNS（配列）
-- `topicSourceAccount` - お題取得元アカウント
-- `topicSearchKeyword` - 検索キーワード
+- `snsProvider` - SNS投稿プロバイダー（`bundle-social`（デフォルト）/ `upload-post`）
+- `uploadPostUserIds` - Upload-PostのプラットフォームごとのユーザーID（`{"TWITTER": "user-id", ...}`）
+- `topicProvider` - お題取得プロバイダー（`twitter-api-io`（デフォルト）/ `x-api`）
+- `topicSourceAccount` - お題取得元アカウント（username）
+- `topicSourceUserId` - お題取得元ユーザーID（`x-api` 時、設定するとルックアップ不要）
+- `topicSearchKeyword` - 検索キーワード（`twitter-api-io` 時のみ使用）
 - `topicPattern` - お題抽出パターン
 - `topicListFile` - お題リストファイル
 - `scheduleTimes` - 定期実行スケジュール（下記参照）

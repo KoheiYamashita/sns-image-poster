@@ -4,14 +4,14 @@
 
 ## 機能
 
-- **お題取得**: Xからお題を取得
+- **お題取得**: Xからお題を取得（TwitterAPI.io / X API v2 選択可）
 - **物語生成**: ClaudeCodeでキャラクター設定に基づいた物語を生成
 - **画像生成**: Gemini 3 Pro Imageで物語のワンシーンを画像化
 - **4コマ漫画モード**: 起承転結の4コマ漫画+挿絵を自動生成
 - **品質チェック**: 生成画像がキャラクター設定・物語・スタイルに合致しているか検証
 - **自動リトライ**: 品質チェック不合格時にプロンプトを改善して再生成
 - **投稿テキスト作成**: SNS投稿用のテキストとハッシュタグを生成
-- **SNS投稿**: bundle.social API経由で複数SNSに投稿（X、Bluesky、Threads等）
+- **SNS投稿**: bundle.social / Upload-Post API経由で複数SNSに投稿（X、Instagram、Bluesky等）
 - **定期実行**: 指定時刻に自動実行するデーモンモード
 
 ## 必要要件
@@ -19,9 +19,11 @@
 - Node.js >= 22.0.0
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) がインストール済みであること（Claude Agent SDK用）
 - [Anthropic API](https://console.anthropic.com/) APIキー（物語生成用）
-- [TwitterAPI.io](https://twitterapi.io/) APIキー（Xからお題を取得する場合）
+- [TwitterAPI.io](https://twitterapi.io/) APIキー（`topicProvider: "twitter-api-io"` でお題を取得する場合）
+- [X API](https://developer.x.com/) Bearer Token（`topicProvider: "x-api"` でお題を取得する場合）
 - [Gemini API](https://ai.google.dev/) APIキー
-- [bundle.social](https://bundle.social/) APIキー（SNS投稿機能を使用する場合）
+- [bundle.social](https://bundle.social/) APIキー（`snsProvider: "bundle-social"` でSNS投稿する場合）
+- [Upload-Post](https://upload-post.com/) APIキー（`snsProvider: "upload-post"` でSNS投稿する場合）
 
 ## セットアップ
 
@@ -44,15 +46,22 @@ APIキーと認証情報のみ`.env`に設定します。その他の設定は�
 # Anthropic API（物語生成用）
 ANTHROPIC_API_KEY=your_anthropic_api_key
 
-# TwitterAPI.io（お題取得用、任意）
+# お題取得用（いずれか一方を設定）
+# TwitterAPI.io（topicProvider: "twitter-api-io" 時）
 TWITTER_API_IO_KEY=your_api_key
+# X API v2（topicProvider: "x-api" 時）
+X_API_BEARER_TOKEN=your_bearer_token
 
 # Gemini API（画像生成用、任意：未設定時はプロンプト出力のみ）
 GEMINI_API_KEY=your_gemini_api_key
 
-# bundle.social（SNS投稿用、任意）
+# SNS投稿用（いずれか一方を設定）
+# bundle.social（snsProvider: "bundle-social" 時）
 BUNDLE_SOCIAL_API_KEY=your_api_key
 BUNDLE_SOCIAL_TEAM_ID=your_team_id
+# Upload-Post（snsProvider: "upload-post" 時）
+UPLOAD_POST_API_KEY=your_api_key
+UPLOAD_POST_USER_ID=your_user_id
 
 # 通知設定（任意）
 WEBHOOK_URL=https://example.com/webhook
@@ -104,8 +113,12 @@ LOG_FILE_PATH=./logs/workflow.jsonl
 | `postMaxLength` | 最大文字数 | `140` |
 | `snsTargets` | 投稿先SNS（配列） | `[]` |
 | `quoteUrlTargets` | 引用URL付与SNS（配列） | `[]` |
-| `topicSourceAccount` | お題取得元アカウント | - |
-| `topicSearchKeyword` | 検索キーワード | - |
+| `snsProvider` | SNS投稿プロバイダー: `bundle-social` または `upload-post` | `bundle-social` |
+| `uploadPostUserIds` | Upload-PostのプラットフォームごとのユーザーID | - |
+| `topicProvider` | お題取得プロバイダー: `twitter-api-io` または `x-api` | `twitter-api-io` |
+| `topicSourceAccount` | お題取得元アカウント（username） | - |
+| `topicSourceUserId` | お題取得元ユーザーID（`x-api` 時、設定するとルックアップ不要） | - |
+| `topicSearchKeyword` | 検索キーワード（`twitter-api-io` 時のみ使用） | - |
 | `topicPattern` | お題抽出パターン（正規表現） | - |
 | `topicListFile` | お題リストファイル | - |
 | `scheduleTimes` | 定期実行スケジュール（後述） | - |
@@ -171,7 +184,7 @@ assets/characters/
 
 1. `--topic` 引数 → 手動指定
 2. `topicListFile` → ファイルから（1行1お題、ランダム選択、使用後削除）
-3. 上記なし → Twitter API
+3. 上記なし → `topicProvider` 設定に基づき選択（`twitter-api-io` or `x-api`）
 
 ## 使い方
 
@@ -226,7 +239,7 @@ npm run no-post -- -p my-preset -t "猫の日"
 ### イラストモード（デフォルト: `contentMode: "illustration"`）
 
 ```
-1. お題取得 (TwitterAPI.io)
+1. お題取得 (TwitterAPI.io / X API v2)
    └─ 指定アカウントから「今日は○○の日」を取得
 
 2. 物語生成 (Claude Opus 4.5)
@@ -247,7 +260,7 @@ npm run no-post -- -p my-preset -t "猫の日"
 6. 投稿テキスト作成 (Claude Opus 4.5)
    └─ 物語 + お題 → SNS投稿文 + ハッシュタグ
 
-7. SNS投稿 (bundle.social) ※オプション
+7. SNS投稿 (bundle.social / Upload-Post) ※オプション
    └─ 画像アップロード → 指定SNSへ投稿
 
 8. 完了通知 ※オプション
@@ -264,7 +277,7 @@ npm run no-post -- -p my-preset -t "猫の日"
 ### 4コマ漫画モード（`contentMode: "manga"`）
 
 ```
-1. お題取得 (TwitterAPI.io)
+1. お題取得 (TwitterAPI.io / X API v2)
    └─ 指定アカウントから「今日は○○の日」を取得
 
 2. プロット生成 (Claude Opus 4.5)
@@ -286,7 +299,7 @@ npm run no-post -- -p my-preset -t "猫の日"
 6. 投稿テキスト作成 (Claude Opus 4.5)
    └─ あらすじ + お題 → SNS投稿文 + ハッシュタグ
 
-7. SNS投稿 (bundle.social) ※オプション
+7. SNS投稿 (bundle.social / Upload-Post) ※オプション
    └─ 画像アップロード → 指定SNSへ投稿
 
 8. 完了通知 ※オプション
@@ -311,7 +324,9 @@ src/
 │   └── character-loader.ts # キャラクター読み込み
 ├── providers/
 │   ├── topic/              # お題取得プロバイダー
-│   │   ├── twitter-api-io.ts  # Twitter自動取得
+│   │   ├── twitter-api-io.ts  # TwitterAPI.io経由
+│   │   ├── x-api.ts           # X API v2経由
+│   │   ├── file-list.ts       # ファイルリスト
 │   │   └── manual.ts          # CLI引数指定
 │   ├── image-generation/   # 画像生成プロバイダー
 │   │   └── gemini.ts
@@ -319,7 +334,8 @@ src/
 │   │   └── twitter.ts
 │   └── sns-post/           # SNS投稿プロバイダー
 │       ├── interface.ts       # インターフェース定義
-│       └── bundle-social.ts   # bundle.social実装
+│       ├── bundle-social.ts   # bundle.social実装
+│       └── upload-post.ts     # Upload-Post実装
 ├── workflow/
 │   ├── story-generator.ts  # 物語生成
 │   ├── image-generator.ts  # 画像生成

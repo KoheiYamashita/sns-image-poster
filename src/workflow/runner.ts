@@ -1,5 +1,6 @@
 import {
   TwitterApiIoProvider,
+  XApiProvider,
   ManualTopicProvider,
   FileListTopicProvider,
   type TopicProvider,
@@ -34,6 +35,16 @@ function createSNSProvider(): SNSPostProvider {
 }
 
 /**
+ * Xお題取得プロバイダーを作成
+ */
+function createTwitterTopicProvider(): TopicProvider {
+  if (env.TOPIC_PROVIDER === "x-api") {
+    return new XApiProvider();
+  }
+  return new TwitterApiIoProvider();
+}
+
+/**
  * SNS投稿が可能かどうかを判定
  */
 function canPostToSNS(): boolean {
@@ -54,12 +65,12 @@ export async function runWorkflow(topic?: string): Promise<void> {
   logger.info("SNS Image Poster ワークフロー開始");
 
   // TopicProviderの選択
-  // 優先順位: 1. 引数指定 → 2. ファイルリスト → 3. Twitter API
+  // 優先順位: 1. 引数指定 → 2. ファイルリスト → 3. TOPIC_PROVIDER設定に基づき選択
   const topicProvider: TopicProvider = topic
     ? new ManualTopicProvider(topic)
     : env.TOPIC_LIST_FILE
       ? new FileListTopicProvider(env.TOPIC_LIST_FILE)
-      : new TwitterApiIoProvider();
+      : createTwitterTopicProvider();
 
   logger.info({ provider: topicProvider.getName() }, "お題プロバイダーを選択");
 

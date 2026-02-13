@@ -16,6 +16,7 @@ const credentialsSchema = z.object({
   TWITTER_API_IO_KEY: z.string().optional(),
   BUNDLE_SOCIAL_API_KEY: z.string().optional(),
   BUNDLE_SOCIAL_TEAM_ID: z.string().optional(),
+  X_API_BEARER_TOKEN: z.string().optional(),
   UPLOAD_POST_API_KEY: z.string().optional(),
   UPLOAD_POST_USER_ID: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -26,7 +27,9 @@ const credentialsSchema = z.object({
 // 動作設定のスキーマ（.envまたはプリセットから）
 const settingsSchema = z.object({
   // お題取得設定
+  TOPIC_PROVIDER: z.enum(["twitter-api-io", "x-api"]).default("twitter-api-io"),
   X_TOPIC_SOURCE_ACCOUNT: z.string().default("today_norma"),
+  X_TOPIC_SOURCE_USER_ID: z.string().optional(),
   TOPIC_SEARCH_KEYWORD: z.string().default("今日は"),
   TOPIC_PATTERN: z.string().default("^今日は(.+の日)です！"),
   TZ: z.string().default("Asia/Tokyo"),
@@ -143,7 +146,9 @@ function mapPresetToEnv(preset: PresetConfig): Record<string, string> {
     ["aspectRatio", "ASPECT_RATIO"],
     ["postStyle", "POST_STYLE"],
     ["snsProvider", "SNS_PROVIDER"],
+    ["topicProvider", "TOPIC_PROVIDER"],
     ["topicSourceAccount", "X_TOPIC_SOURCE_ACCOUNT"],
+    ["topicSourceUserId", "X_TOPIC_SOURCE_USER_ID"],
     ["topicSearchKeyword", "TOPIC_SEARCH_KEYWORD"],
     ["topicPattern", "TOPIC_PATTERN"],
     ["topicListFile", "TOPIC_LIST_FILE"],
