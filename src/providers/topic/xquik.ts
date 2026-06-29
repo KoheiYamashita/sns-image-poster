@@ -5,19 +5,19 @@ import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
 
 interface XquikTweet {
-  id: string;
-  text: string;
-  createdAt?: string;
-  url?: string;
+  id?: unknown;
+  text?: unknown;
+  createdAt?: unknown;
+  url?: unknown;
   author?: {
-    username?: string;
+    username?: unknown;
   };
 }
 
 interface XquikSearchResponse {
-  tweets: XquikTweet[];
-  has_next_page: boolean;
-  next_cursor?: string;
+  tweets?: XquikTweet[];
+  has_next_page?: boolean;
+  next_cursor?: unknown;
 }
 
 const MAX_PAGES = 10;
@@ -47,7 +47,7 @@ export class XquikProvider implements TopicProvider {
   }
 
   async getTopic(): Promise<TopicSource> {
-    const sinceDate = this.getLocalDate();
+    const sinceDate = this.getLocalMidnightIso();
     let cursor: string | undefined;
     let totalChecked = 0;
 
@@ -59,34 +59,49 @@ export class XquikProvider implements TopicProvider {
     for (let page = 0; page < MAX_PAGES; page++) {
       const response = await this.searchTweets(sinceDate, cursor);
 
-      if (!response.tweets || response.tweets.length === 0) {
+      if (!Array.isArray(response.tweets) || response.tweets.length === 0) {
         break;
       }
 
       for (const tweet of response.tweets) {
+        if (typeof tweet.id !== "string" || typeof tweet.text !== "string") {
+          continue;
+        }
+
         const match = tweet.text.match(this.pattern);
-        if (match?.[1]) {
-          const authorUsername = tweet.author?.username ?? this.account;
+        const topicText = match?.[1];
+        if (topicText) {
+          const authorUsername =
+            typeof tweet.author?.username === "string"
+              ? tweet.author.username
+              : this.account;
+          const tweetUrl =
+            typeof tweet.url === "string" && tweet.url.length > 0
+              ? tweet.url
+              : `https://x.com/${authorUsername}/status/${tweet.id}`;
           logger.info(
-            { tweetId: tweet.id, topicText: match[1], page: page + 1 },
+            { tweetId: tweet.id, topicText, page: page + 1 },
             "お題を取得しました"
           );
 
           return {
             tweetId: tweet.id,
-            tweetUrl: tweet.url ?? `https://x.com/${authorUsername}/status/${tweet.id}`,
+            tweetUrl,
             accountHandle: `@${authorUsername}`,
-            topicText: match[1],
+            topicText,
             originalText: tweet.text,
-            fetchedAt: tweet.createdAt ? new Date(tweet.createdAt) : new Date(),
+            fetchedAt: this.parseDateOrNow(tweet.createdAt),
           };
         }
       }
 
       totalChecked += response.tweets.length;
-      cursor = response.next_cursor;
+      cursor =
+        typeof response.next_cursor === "string"
+          ? response.next_cursor
+          : undefined;
 
-      if (!response.has_next_page || !cursor) {
+      if (response.has_next_page !== true || !cursor) {
         break;
       }
 
@@ -137,20 +152,68 @@ export class XquikProvider implements TopicProvider {
       });
     }
 
-    return (await res.json()) as XquikSearchResponse;
+    try {
+      return (await res.json()) as XquikSearchResponse;
+    } catch (error) {
+      throw new TopicFetchError(
+        "Xquik APIのレスポンスをJSONとして解析できませんでした",
+        { error }
+      );
+    }
   }
 
-  private getLocalDate(): string {
-    const localDateStr = new Date()
-      .toLocaleDateString("en-CA", { timeZone: env.TZ })
-      .split("T")[0];
-
-    if (!localDateStr) {
-      throw new TopicFetchError("Xquik検索用の日付を生成できませんでした", {
-        timezone: env.TZ,
-      });
+  private parseDateOrNow(value: unknown): Date {
+    if (typeof value !== "string") {
+      return new Date();
     }
 
-    return localDateStr;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  private getLocalMidnightIso(): string {
+    try {
+      const { year, month, day } = this.getLocalDateParts(new Date());
+      const localMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+      const timezoneOffsetMs = this.getTimezoneOffsetMs(env.TZ, localMidnight);
+      return new Date(localMidnight.getTime() - timezoneOffsetMs).toISOString();
+    } catch (error) {
+      throw new TopicFetchError(
+        "Xquik検索用の日付を生成できませんでした。タイムゾーンの設定を確認してください。",
+        { timezone: env.TZ, error }
+      );
+    }
+  }
+
+  private getLocalDateParts(date: Date): {
+    year: number;
+    month: number;
+    day: number;
+  } {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: env.TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+
+    if (!year || !month || !day) {
+      throw new Error("Missing local date parts");
+    }
+
+    return {
+      year: Number.parseInt(year, 10),
+      month: Number.parseInt(month, 10),
+      day: Number.parseInt(day, 10),
+    };
+  }
+
+  private getTimezoneOffsetMs(timeZone: string, date: Date): number {
+    const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
+    const localDate = new Date(date.toLocaleString("en-US", { timeZone }));
+    return localDate.getTime() - utcDate.getTime();
   }
 }
