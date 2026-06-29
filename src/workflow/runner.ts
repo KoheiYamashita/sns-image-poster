@@ -1,6 +1,7 @@
 import {
   TwitterApiIoProvider,
   XApiProvider,
+  XquikProvider,
   ManualTopicProvider,
   FileListTopicProvider,
   type TopicProvider,
@@ -38,6 +39,9 @@ function createSNSProvider(): SNSPostProvider {
  * Xお題取得プロバイダーを作成
  */
 function createTwitterTopicProvider(): TopicProvider {
+  if (env.TOPIC_PROVIDER === "xquik") {
+    return new XquikProvider();
+  }
   if (env.TOPIC_PROVIDER === "x-api") {
     return new XApiProvider();
   }
