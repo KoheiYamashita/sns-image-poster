@@ -67,12 +67,15 @@ export class FileListTopicProvider implements TopicProvider {
     }
 
     const topics = this.readTopics();
-    const updatedTopics = topics.filter((t) => t !== this.selectedTopic);
+    const selectedIndex = topics.indexOf(this.selectedTopic);
+    if (selectedIndex >= 0) {
+      topics.splice(selectedIndex, 1);
+    }
 
-    this.writeTopics(updatedTopics);
+    this.writeTopics(topics);
 
     logger.info(
-      { topicText: this.selectedTopic, remaining: updatedTopics.length },
+      { topicText: this.selectedTopic, remaining: topics.length },
       "使用済みお題をファイルから削除しました"
     );
 
