@@ -28,4 +28,18 @@ describe("FileListTopicProvider", () => {
     expect(topic.topicText).toBe("猫の日");
     expect(readFileSync(filePath, "utf-8")).toBe("猫の日\n犬の日\n");
   });
+
+  it("preserves externally replaced topics when the selection is missing", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "sns-image-poster-"));
+    temporaryDirectories.push(directory);
+    const filePath = join(directory, "topics.txt");
+    writeFileSync(filePath, "猫の日\n", "utf-8");
+
+    const provider = new FileListTopicProvider(filePath);
+    await provider.getTopic();
+    writeFileSync(filePath, "犬の日\n", "utf-8");
+    await provider.markUsed();
+
+    expect(readFileSync(filePath, "utf-8")).toBe("犬の日\n");
+  });
 });

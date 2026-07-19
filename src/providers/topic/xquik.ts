@@ -21,6 +21,7 @@ interface XquikSearchResponse {
 }
 
 const MAX_PAGES = 10;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 export class XquikProvider implements TopicProvider {
   private readonly apiKey: string;
@@ -135,13 +136,22 @@ export class XquikProvider implements TopicProvider {
       url.searchParams.set("cursor", cursor);
     }
 
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        "X-API-Key": this.apiKey,
-        "Content-Type": "application/json",
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          "X-API-Key": this.apiKey,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (error) {
+      throw new TopicFetchError(
+        "Xquik APIへの接続がタイムアウトしたか失敗しました",
+        { error }
+      );
+    }
 
     if (!res.ok) {
       const errorText = await res.text();

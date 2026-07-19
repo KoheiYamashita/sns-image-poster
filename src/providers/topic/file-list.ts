@@ -70,14 +70,18 @@ export class FileListTopicProvider implements TopicProvider {
     const selectedIndex = topics.indexOf(this.selectedTopic);
     if (selectedIndex >= 0) {
       topics.splice(selectedIndex, 1);
+      this.writeTopics(topics);
+
+      logger.info(
+        { topicText: this.selectedTopic, remaining: topics.length },
+        "使用済みお題をファイルから削除しました"
+      );
+    } else {
+      logger.warn(
+        { topicText: this.selectedTopic },
+        "選択済みのお題がファイルに見つかりませんでした"
+      );
     }
-
-    this.writeTopics(topics);
-
-    logger.info(
-      { topicText: this.selectedTopic, remaining: topics.length },
-      "使用済みお題をファイルから削除しました"
-    );
 
     this.selectedTopic = undefined;
   }
